@@ -21,15 +21,20 @@ endif
 # As long as you've installed gfortran, nothing here should need to be
 # changed.
 FC = gfortran
-fast_flags=-O3 -march=native -std=f2008
-debug_flags=-Og -g -Wall -Wextra -Wline-truncation -Wcharacter-truncation -Wsurprising -Waliasing -Wimplicit-interface -Wunused-parameter -pedantic -fimplicit-none -fbounds-check -fbacktrace -fcheck=all -std=f2008
+fast_flags=-O3 -march=native -std=f2008 -fall-intrinsics
+debug_flags=-Og -fall-intrinsics -g -Wall -Wextra -Wline-truncation -Wcharacter-truncation -Wsurprising -Waliasing -Wimplicit-interface -Wunused-parameter -pedantic -fimplicit-none -fbounds-check -fbacktrace -fcheck=all -std=f2008
 libs=-lblas -llapack -lfftw3
+
+FFTW3.o: FFTW3.f90
+	$(FC) $(FFLAGS) -I$(fftw_include_dir) -c $*.f90 -o $@
 
 %.o: %.f90
 	$(FC) $(FFLAGS) -c $*.f90 -o $@
-	
+
+ring.o: FFTW3.o
+
 optiman.x: clean $(user_fcn).o ring.o driver.o
-	$(FC) $(FFLAGS) -I$(fftw_include_dir) -o optiman.x *.o -L$(fftw_lib_dir) -L$(lapack_lib_dir) -L$(blas_lib_dir) $(libs)
+	$(FC) $(FFLAGS) -o optiman.x *.o -L$(fftw_lib_dir) -L$(lapack_lib_dir) -L$(blas_lib_dir) $(libs)
 	
 clean:
 	rm -f *.exe *.mod *.o *.x
