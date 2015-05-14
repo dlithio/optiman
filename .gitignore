@@ -27,3 +27,6 @@
 *.x
 *.out
 *.app
+
+#other
+output

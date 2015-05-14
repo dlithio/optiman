@@ -66,6 +66,8 @@ fftw_integral(1) = dcmplx(0.d0,0.d0)
 do concurrent (i=2:npoints/2+1)
 fftw_integral(i) = dcmplx(0.d0,1.d0/dble(i-1))
 end do
+open(unit=100,file="output")
+write(100,*) ndim,npoints
 end subroutine allocate_arrays
 
 subroutine set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoints)
@@ -245,12 +247,17 @@ double precision, intent(in) :: dt
 points = points + dt*fideal
 end subroutine timestep
 
+subroutine write_output()
+implicit none
+write(100,*) points
+end subroutine write_output
+
 subroutine deallocate_arrays()
 implicit none
-integer :: i
-do concurrent (i=1:12)
-write(*,*) '**',i,points(:,i),i,'**'
-end do
+!integer :: i
+!do concurrent (i=1:12)
+!write(*,*) '**',i,points(:,i),i,'**'
+!end do
 deallocate(points)
 deallocate(t)
 deallocate(ts)
@@ -270,6 +277,7 @@ nullify(phys)
 nullify(coef)
 deallocate(fftw_derivative)
 deallocate(fftw_integral)
+close(100)
 end subroutine deallocate_arrays
 
 end module ring

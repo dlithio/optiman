@@ -21,8 +21,8 @@ radius = 2.d0
 sdiff_switch = 1
 t_switch = 1
 dt = 1.d-2
-steps_per_save = 1;
-saved_rings = 100;
+steps_per_save = 1000;
+saved_rings = 10;
 
 npoints = npoints_start
 call set_switches(sdiff_switch,t_switch)
@@ -48,11 +48,9 @@ do ringnum=2,saved_rings
         call find_fideal(ndim,npoints)
         call timestep(dt)
     enddo
+    call write_output()
 enddo
 
-
 call deallocate_arrays()
-
-
 
 end program driver
