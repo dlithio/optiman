@@ -5,6 +5,8 @@ integer :: ndim
 integer :: npoints, npoints_start
 integer :: sdiff_switch
 integer :: t_switch
+integer :: ts_switch
+integer :: integral_switch
 double precision, allocatable :: eigvec1(:)
 double precision, allocatable :: eigvec2(:)
 double precision :: eigval1
@@ -15,23 +17,25 @@ double precision :: dt
 integer :: steps_per_save,stepnum
 integer :: saved_rings,ringnum
 
-npoints_start = 12
+npoints_start = 128
 ndim = 3
-radius = 2.d0
+radius = 15.d0
 sdiff_switch = 1
-t_switch = 1
-dt = 1.d-2
+t_switch = 2
+ts_switch = 2
+integral_switch = 2
+dt = 1.d-3
 steps_per_save = 1000;
-saved_rings = 10;
+saved_rings = 150;
 
 npoints = npoints_start
-call set_switches(sdiff_switch,t_switch)
+call set_switches(sdiff_switch,t_switch,ts_switch,integral_switch)
 call allocate_arrays(ndim,npoints)
 
 allocate(eigvec1(ndim))
 allocate(eigvec2(ndim))
-eigvec1 = (/ 1.d0, 0.d0, 0.d0 /)
-eigvec2 = (/ 0.d0, 1.d0, 0.d0 /)
+eigvec1 = (/ 0.61482d0, -0.78867d0, 0.d0 /)
+eigvec2 = (/ 0.d0, 0.d0, 1.d0 /)
 eigval1 = 1.d0
 eigval2 = 1.d0
 allocate(fixed_point(ndim))

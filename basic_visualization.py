@@ -1,3 +1,5 @@
+import matplotlib as mpl
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -13,7 +15,10 @@ rings = np.loadtxt('output',skiprows=1)
 
 rings.shape = (rings.shape[0],npoints,ndim)
 
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+
 for i in range(rings.shape[0]):
-    plt.plot(rings[i,:,0],rings[i,:,1])
+    ax.plot(rings[i,:,0],rings[i,:,1],rings[i,:,2])
     
 plt.show()

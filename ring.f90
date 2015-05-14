@@ -4,13 +4,20 @@ implicit none
 double precision, private :: pi=4.d0*datan(1.d0)
 integer, private :: sdiff_switch
 integer, private :: t_switch
+integer, private :: ts_switch
+integer, private :: integral_switch
+integer :: big
 double precision, allocatable, private :: points(:,:)
+double precision, allocatable, private :: big_points(:,:)
 double precision, allocatable, private :: t(:,:)
 double precision, allocatable, private :: ts(:,:)
+double precision, allocatable, private :: big_t(:,:)
 double precision, allocatable, private :: f(:,:)
 double precision, allocatable, private :: fideal(:,:)
 double precision, allocatable, private :: sdiff(:)
+double precision, allocatable, private :: big_sdiff(:)
 double precision, allocatable, private :: s(:)
+double precision, allocatable, private :: big_s(:)
 double precision, allocatable, private :: f_dot_t(:)
 double precision, allocatable, private :: f_dot_ts(:)
 double precision, allocatable, private :: first_integral(:)
@@ -24,12 +31,17 @@ complex(kind=8), allocatable, private :: fftw_derivative(:)
 complex(kind=8), allocatable, private :: fftw_integral(:)
 contains
 
-subroutine set_switches(sdiff_switch_input,t_switch_input)
+subroutine set_switches(sdiff_switch_input,t_switch_input,ts_switch_input,integral_switch_input)
 implicit none
 integer, intent(in) :: sdiff_switch_input
 integer, intent(in) :: t_switch_input
+integer, intent(in) :: ts_switch_input
+integer, intent(in) :: integral_switch_input
 sdiff_switch = sdiff_switch_input
 t_switch = t_switch_input
+ts_switch = ts_switch_input
+integral_switch = integral_switch_input
+big = 1
 end subroutine set_switches
 
 subroutine allocate_arrays(ndim,npoints)
@@ -38,12 +50,16 @@ integer, intent(in) :: ndim
 integer, intent(in) :: npoints
 integer :: i
 allocate(points(ndim,npoints))
+allocate(big_points(ndim,(1-big):(npoints+big)))
 allocate(t(ndim,npoints))
 allocate(ts(ndim,npoints))
+allocate(big_t(ndim,(1-big):(npoints+big)))
 allocate(f(ndim,npoints))
 allocate(fideal(ndim,npoints))
 allocate(sdiff(npoints))
+allocate(big_sdiff((1-big):(npoints+big)))
 allocate(s(npoints))
+allocate(big_s((1-big):(npoints+big)))
 allocate(f_dot_t(npoints))
 allocate(f_dot_ts(npoints))
 allocate(first_integral(npoints))
@@ -86,10 +102,22 @@ points(:,i) = fixed_point + radius * &
                + eigval2*dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2)
 !write(*,*) '**',i,points(:,i),i,'**'
 end do
-points(:,1) =  (/ 1.99969539031d0, 0.03490481287d0, 0.d0 /)
+!points(:,1) =  (/ 1.99969539031d0, 0.03490481287d0, 0.d0 /)
 end subroutine set_initial_points
 
 subroutine points_to_tangent(ndim,npoints)
+implicit none
+integer, intent(in) :: ndim
+integer, intent(in) :: npoints
+if (t_switch .eq. 1) then
+call points_to_tangent1(ndim,npoints)
+endif
+if (t_switch .eq. 2) then
+call points_to_tangent2(ndim,npoints)
+endif
+end subroutine points_to_tangent
+
+subroutine points_to_tangent1(ndim,npoints)
 implicit none
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
@@ -106,9 +134,42 @@ call normc(t,npoints)
 !do concurrent (i=1:ndim)
 !    write(*,*) i,'AAA',points(i,:),'AAA',t(i,:)
 !enddo
-end subroutine points_to_tangent
+end subroutine points_to_tangent1
+
+subroutine points_to_tangent2(ndim,npoints)
+implicit none
+integer, intent(in) :: ndim
+integer, intent(in) :: npoints
+integer :: i
+big_points(:,1:npoints) = points
+big_points(:,(1-big):0) = points(:,(npoints-big+1):npoints)
+big_points(:,(npoints+1):(npoints+big)) = points(:,1:(1+big-1))
+big_sdiff(1:npoints) = sdiff
+big_sdiff((1-big):0) = sdiff((npoints-big+1):npoints)
+big_sdiff((npoints+1):(npoints+big)) = sdiff(1:(1+big-1))
+do i=1,npoints
+    t(:,i) = 0.5d0*(big_points(:,i)-big_points(:,i-1))/big_sdiff(i) + &
+            0.5d0*(big_points(:,i+1)-big_points(:,i))/big_sdiff(i+1)
+end do
+call normc(t,npoints)
+!do concurrent (i=1:ndim)
+!    write(*,*) i,'AAA',points(i,:),'AAA',t(i,:)
+!enddo
+end subroutine points_to_tangent2
 
 subroutine tangent_to_ts(ndim,npoints)
+implicit none
+integer, intent(in) :: ndim
+integer, intent(in) :: npoints
+if (ts_switch .eq. 1) then
+call tangent_to_ts1(ndim,npoints)
+endif
+if (ts_switch .eq. 2) then
+call tangent_to_ts2(ndim,npoints)
+endif
+end subroutine tangent_to_ts
+
+subroutine tangent_to_ts1(ndim,npoints)
 implicit none
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
@@ -124,7 +185,27 @@ end do
 !do concurrent (i=1:ndim)
 !    write(*,*) i,'AAA',points(i,:),'AAA',ts(i,:)
 !enddo
-end subroutine tangent_to_ts
+end subroutine tangent_to_ts1
+
+subroutine tangent_to_ts2(ndim,npoints)
+implicit none
+integer, intent(in) :: ndim
+integer, intent(in) :: npoints
+integer :: i
+big_t(:,1:npoints) = t
+big_t(:,(1-big):0) = t(:,(npoints-big+1):npoints)
+big_t(:,(npoints+1):(npoints+big)) = t(:,1:(1+big-1))
+big_sdiff(1:npoints) = sdiff
+big_sdiff((1-big):0) = sdiff((npoints-big+1):npoints)
+big_sdiff((npoints+1):(npoints+big)) = sdiff(1:(1+big-1))
+do i=1,npoints
+    ts(:,i) = 0.5d0*(big_t(:,i)-big_t(:,i-1))/big_sdiff(i) + &
+            0.5d0*(big_t(:,i+1)-big_t(:,i))/big_sdiff(i+1)
+end do
+!do concurrent (i=1:ndim)
+!    write(*,*) i,'AAA',points(i,:),'AAA',t(i,:)
+!enddo
+end subroutine tangent_to_ts2
 
 subroutine points_to_f(ndim,npoints)
 use user_functions
@@ -171,16 +252,18 @@ enddo
 ! write(*,*) sum(sdiff)
 end subroutine find_sdiff1
 
-subroutine find_s(npoints)
+subroutine find_s(npoints,diff_vec,return_vec)
 implicit none
 integer, intent(in) :: npoints
+double precision, intent(inout) :: diff_vec(1:npoints)
+double precision, intent(inout) :: return_vec(1:npoints)
 integer :: i
-s(1) = sdiff(1)
+return_vec(1) = diff_vec(1)
 do i=2,npoints
-s(i) = s(i-1) + sdiff(i)
+return_vec(i) = return_vec(i-1) + diff_vec(i)
 enddo
-!write(*,*) 'sdiff',sdiff
-!write(*,*) 's',s
+!write(*,*) 'sdiff',diff_vec
+!write(*,*) 's',return_vec
 end subroutine find_s
 
 subroutine dot(v1,v2,vr,npoints)
@@ -199,6 +282,17 @@ end subroutine dot
 subroutine find_first_integral(npoints)
 implicit none
 integer, intent(in) :: npoints
+if (integral_switch .eq. 1) then
+call find_first_integral1(npoints)
+endif
+if (integral_switch .eq. 2) then
+call find_first_integral2(npoints)
+endif
+end subroutine find_first_integral
+
+subroutine find_first_integral1(npoints)
+implicit none
+integer, intent(in) :: npoints
 phys = 0.d0
 phys(1:npoints) = f_dot_ts
 call fftw_execute_dft_r2c(planr2c, phys, coef)
@@ -209,7 +303,17 @@ call fftw_execute_dft_c2r(planc2r, coef, phys)
 first_integral = first_integral + phys(1:npoints)/dble(npoints)
 !write(*,*) 'f_dot_ts',f_dot_ts
 !write(*,*) 'first_integral',first_integral
-end subroutine find_first_integral
+end subroutine find_first_integral1
+
+subroutine find_first_integral2(npoints)
+implicit none
+integer, intent(in) :: npoints
+integer :: i
+first_integral(1) = sdiff(1)*(0.5d0*f_dot_ts(npoints) + 0.5d0*f_dot_ts(1))
+do i=2,npoints
+first_integral(i) = first_integral(i-1)+sdiff(i)*(0.5d0*f_dot_ts(i) + 0.5d0*f_dot_ts(i-1))
+enddo
+end subroutine find_first_integral2
 
 subroutine find_second_integral(npoints)
 implicit none
@@ -226,7 +330,7 @@ integer, intent(in) :: npoints
 integer :: i
 call points_to_f(ndim,npoints)
 call find_sdiff(npoints)
-call find_s(npoints)
+call find_s(npoints,sdiff,s)
 call points_to_tangent(ndim,npoints)
 call tangent_to_ts(ndim,npoints)
 call dot(ts,f,f_dot_ts,npoints)
@@ -259,12 +363,16 @@ implicit none
 !write(*,*) '**',i,points(:,i),i,'**'
 !end do
 deallocate(points)
+deallocate(big_points)
 deallocate(t)
+deallocate(big_t)
 deallocate(ts)
 deallocate(f)
 deallocate(fideal)
 deallocate(sdiff)
+deallocate(big_sdiff)
 deallocate(s)
+deallocate(big_s)
 deallocate(f_dot_t)
 deallocate(f_dot_ts)
 deallocate(first_integral)
