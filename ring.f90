@@ -240,6 +240,9 @@ integer, intent(in) :: npoints
 if (sdiff_switch .eq. 1) then
 call find_sdiff1(npoints)
 endif
+if (sdiff_switch .eq. 2) then
+call find_sdiff2(npoints)
+endif
 end subroutine find_sdiff
 
 subroutine find_sdiff1(npoints)
@@ -251,6 +254,17 @@ sdiff(i) = 2.d0*pi/dble(npoints)
 enddo
 ! write(*,*) sum(sdiff)
 end subroutine find_sdiff1
+
+subroutine find_sdiff2(npoints)
+implicit none
+integer, intent(in) :: npoints
+integer :: i
+sdiff(1) = sqrt(sum((points(:,1)-points(:,npoints))*(points(:,1)-points(:,npoints))))
+do concurrent(i=2:npoints)
+sdiff(i) = sqrt(sum((points(:,i)-points(:,i-1))*(points(:,i)-points(:,i-1))))
+enddo
+sdiff = sdiff/sum(sdiff)*2.d0*pi
+end subroutine find_sdiff2
 
 subroutine find_s(npoints,diff_vec,return_vec)
 implicit none

@@ -18,7 +18,7 @@ rings.shape = (rings.shape[0],npoints,ndim)
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 
-for i in range(rings.shape[0]):
-    ax.plot(rings[i,:,0],rings[i,:,1],rings[i,:,2])
-    
+#for i in range(rings.shape[0]):
+    #ax.plot(rings[i,:,0],rings[i,:,1],rings[i,:,2])
+ax.plot(rings[-1,:,0],rings[-1,:,1],rings[-1,:,2])
 plt.show()
