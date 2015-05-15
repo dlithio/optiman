@@ -26,6 +26,8 @@ double precision, allocatable, private :: first_integral(:)
 double precision, allocatable, private :: second_integral(:)
 double precision, allocatable, private :: phi(:)
 double precision, allocatable, private :: position_vec(:)
+double precision, allocatable, private :: points_new(:,:)
+double precision, allocatable, private :: position_vec_new(:)
 ! FFTW arrays
 real(C_DOUBLE), pointer, private :: phys(:)
 complex(C_DOUBLE_COMPLEX), pointer, private :: coef(:)
@@ -53,7 +55,7 @@ double precision, intent(in) :: distance_percentage
 double precision, intent(in) :: radius
 integer, intent(in) :: npoints
 max_dist = 2*pi*radius/dble(npoints)*distance_percentage
-write(*,*) max_dist
+!write(*,*) max_dist
 end subroutine set_when_to_adapt
 
 subroutine allocate_arrays(ndim,npoints)
@@ -62,6 +64,7 @@ integer, intent(in) :: ndim
 integer, intent(in) :: npoints
 integer :: i
 allocate(points(ndim,npoints))
+allocate(points_new(ndim,npoints))
 allocate(big_points(ndim,(1-big):(npoints+big)))
 allocate(t(ndim,npoints))
 allocate(ts(ndim,npoints))
@@ -79,6 +82,7 @@ allocate(first_integral(npoints))
 allocate(second_integral(npoints))
 allocate(phi(npoints))
 allocate(position_vec(npoints))
+allocate(position_vec_new(npoints))
 ! Allocate the fftw working arrays and set the plan
 fftw_data = fftw_alloc_complex(int((npoints/2+1), C_SIZE_T))
 call c_f_pointer(fftw_data, phys, [2*(npoints/2+1)])
@@ -287,23 +291,43 @@ enddo
 sdiff = sdiff/sum(sdiff)*2.d0*pi
 end subroutine find_sdiff2
 
-subroutine find_distance(npoints)
+subroutine find_distance(vin,vout,npoints)
 implicit none
+double precision, intent(inout) :: vin(:,:)
+double precision, intent(inout) :: vout(:)
 integer, intent(in) :: npoints
 integer :: i
-dist_diff(1) = sqrt(sum((points(:,1)-points(:,npoints))*(points(:,1)-points(:,npoints))))
+vout(1) = sqrt(sum((vin(:,1)-vin(:,npoints))*(vin(:,1)-vin(:,npoints))))
 do concurrent(i=2:npoints)
-dist_diff(i) = sqrt(sum((points(:,i)-points(:,i-1))*(points(:,i)-points(:,i-1))))
+vout(i) = sqrt(sum((vin(:,i)-vin(:,i-1))*(vin(:,i)-vin(:,i-1))))
 enddo
 end subroutine find_distance
 
-subroutine check_points_far(npoints)
+subroutine check_points_far(npoints,something_wrong)
 implicit none
 integer, intent(in) :: npoints
+logical, intent(inout) :: something_wrong
 integer :: i
-call find_distance(npoints)
-write(*,*) ANY(dist_diff .gt. max_dist)
+call find_distance(points_new,dist_diff,npoints)
+something_wrong = (something_wrong .OR. ANY(dist_diff .gt. max_dist))
 end subroutine check_points_far
+
+subroutine check_new_ring(npoints,something_wrong)
+implicit none
+integer, intent(in) :: npoints
+logical, intent(inout) :: something_wrong
+something_wrong = .FALSE.
+call check_points_far(npoints,something_wrong)
+end subroutine check_new_ring
+
+subroutine accept_new_ring()
+implicit none
+points = points_new
+end subroutine accept_new_ring
+
+subroutine fix_old_ring()
+implicit none
+end subroutine fix_old_ring
 
 subroutine find_s(npoints,diff_vec,return_vec)
 implicit none
@@ -401,7 +425,7 @@ end subroutine find_fideal
 subroutine timestep(dt)
 implicit none
 double precision, intent(in) :: dt
-points = points + dt*fideal
+points_new = points + dt*fideal
 end subroutine timestep
 
 subroutine write_output(ringnum,npoints)
@@ -445,6 +469,8 @@ nullify(coef)
 deallocate(fftw_derivative)
 deallocate(fftw_integral)
 deallocate(position_vec)
+deallocate(points_new)
+deallocate(position_vec_new)
 close(100)
 end subroutine deallocate_arrays
 
