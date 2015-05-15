@@ -34,6 +34,7 @@ complex(C_DOUBLE_COMPLEX), pointer, private :: coef(:)
 type(C_PTR), private :: planr2c, planc2r, fftw_data
 complex(kind=8), allocatable, private :: fftw_derivative(:)
 complex(kind=8), allocatable, private :: fftw_integral(:)
+logical, private :: first_run = .TRUE.
 contains
 
 subroutine set_switches(sdiff_switch_input,t_switch_input,ts_switch_input,integral_switch_input)
@@ -64,7 +65,9 @@ integer, intent(in) :: ndim
 integer, intent(in) :: npoints
 integer :: i
 allocate(points(ndim,npoints))
+if (first_run) then 
 allocate(points_new(ndim,npoints))
+endif
 allocate(big_points(ndim,(1-big):(npoints+big)))
 allocate(t(ndim,npoints))
 allocate(ts(ndim,npoints))
@@ -82,7 +85,9 @@ allocate(first_integral(npoints))
 allocate(second_integral(npoints))
 allocate(phi(npoints))
 allocate(position_vec(npoints))
+if (first_run) then 
 allocate(position_vec_new(npoints))
+endif
 ! Allocate the fftw working arrays and set the plan
 fftw_data = fftw_alloc_complex(int((npoints/2+1), C_SIZE_T))
 call c_f_pointer(fftw_data, phys, [2*(npoints/2+1)])
@@ -105,6 +110,7 @@ open(unit=100,file="output")
 do i=1,npoints
 position_vec(i) = dble(i)/dble(npoints)
 enddo 
+first_run = .FALSE.
 end subroutine allocate_arrays
 
 subroutine set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoints)
@@ -307,9 +313,8 @@ subroutine check_points_far(npoints,something_wrong)
 implicit none
 integer, intent(in) :: npoints
 logical, intent(inout) :: something_wrong
-integer :: i
 call find_distance(points_new,dist_diff,npoints)
-something_wrong = (something_wrong .OR. ANY(dist_diff .gt. max_dist))
+something_wrong = (something_wrong .OR. any(dist_diff .gt. max_dist))
 end subroutine check_points_far
 
 subroutine check_new_ring(npoints,something_wrong)
@@ -325,9 +330,66 @@ implicit none
 points = points_new
 end subroutine accept_new_ring
 
-subroutine fix_old_ring()
+subroutine fix_old_ring(ndim,npointsold)
 implicit none
+integer, intent(in) :: ndim
+integer, intent(inout) :: npointsold
+integer :: new_npoints
+integer :: old_point
+integer :: new_point
+deallocate(points_new)
+deallocate(position_vec_new)
+new_npoints = npointsold + count(dist_diff .gt. max_dist)
+allocate(points_new(ndim,new_npoints))
+allocate(position_vec_new(new_npoints))
+new_point = 1
+old_point = 1
+do old_point=1,npointsold
+    if (dist_diff(old_point) .gt. max_dist) then
+        call interpolate(points,points_new,old_point,new_point,npointsold)
+        call interpolatepos(position_vec,position_vec_new,old_point,new_point,npointsold)
+        new_point = new_point + 1
+    endif
+    points_new(:,new_point) = points(:,old_point)
+    position_vec_new(new_point) = position_vec(old_point)
+    new_point = new_point + 1
+enddo
+call deallocate_arrays()
+call allocate_arrays(ndim,new_npoints)
+npointsold = new_npoints
+points = points_new
+position_vec = position_vec_new
 end subroutine fix_old_ring
+
+subroutine interpolate(oldarray,newarray,old_point,new_point,npointsold)
+implicit none
+double precision, intent(inout) :: oldarray(:,:)
+double precision, intent(inout) :: newarray(:,:)
+integer, intent(in) :: old_point
+integer, intent(in) :: new_point
+integer, intent(inout) :: npointsold
+if (old_point .eq. 1) then
+newarray(:,new_point) = (oldarray(:,1) + oldarray(:,npointsold))/2.d0
+endif
+if (old_point .ne. 1) then
+newarray(:,new_point) = (oldarray(:,old_point) + oldarray(:,old_point-1))/2.d0
+endif
+end subroutine
+
+subroutine interpolatepos(oldarray,newarray,old_point,new_point,npointsold)
+implicit none
+double precision, intent(inout) :: oldarray(:)
+double precision, intent(inout) :: newarray(:)
+integer, intent(in) :: old_point
+integer, intent(in) :: new_point
+integer, intent(inout) :: npointsold
+if (old_point .eq. 1) then
+newarray(new_point) = (oldarray(1))/2.d0
+endif
+if (old_point .ne. 1) then
+newarray(new_point) = (oldarray(old_point) + oldarray(old_point-1))/2.d0
+endif
+end subroutine
 
 subroutine find_s(npoints,diff_vec,return_vec)
 implicit none
@@ -469,9 +531,6 @@ nullify(coef)
 deallocate(fftw_derivative)
 deallocate(fftw_integral)
 deallocate(position_vec)
-deallocate(points_new)
-deallocate(position_vec_new)
-close(100)
 end subroutine deallocate_arrays
 
 end module ring

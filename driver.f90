@@ -26,9 +26,9 @@ sdiff_switch = 1
 t_switch = 2
 ts_switch = 2
 integral_switch = 2
-dt = 10.d0
+dt = 46.d0
 steps_per_save = 1;
-saved_rings = 15;
+saved_rings = 2;
 distance_percentage = 2.d0;
 
 npoints = npoints_start
@@ -67,10 +67,10 @@ do ringnum=2,saved_rings
         call timestep(dt)
         call check_new_ring(npoints,something_wrong)
         do while (something_wrong)
-            call fix_old_ring()
+            call fix_old_ring(ndim,npoints)
+            call find_fideal(ndim,npoints)
             call timestep(dt) 
             call check_new_ring(npoints,something_wrong)
-            something_wrong = .FALSE.
         enddo
         call accept_new_ring()
     enddo
