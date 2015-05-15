@@ -2,6 +2,7 @@ module ring
 use FFTW3
 implicit none
 double precision, private :: pi=4.d0*datan(1.d0)
+double precision, private :: max_dist
 integer, private :: sdiff_switch
 integer, private :: t_switch
 integer, private :: ts_switch
@@ -15,6 +16,7 @@ double precision, allocatable, private :: big_t(:,:)
 double precision, allocatable, private :: f(:,:)
 double precision, allocatable, private :: fideal(:,:)
 double precision, allocatable, private :: sdiff(:)
+double precision, allocatable, private :: dist_diff(:)
 double precision, allocatable, private :: big_sdiff(:)
 double precision, allocatable, private :: s(:)
 double precision, allocatable, private :: big_s(:)
@@ -24,8 +26,6 @@ double precision, allocatable, private :: first_integral(:)
 double precision, allocatable, private :: second_integral(:)
 double precision, allocatable, private :: phi(:)
 double precision, allocatable, private :: position_vec(:)
-double precision, allocatable, private :: new_position_vec(:)
-double precision, allocatable, private :: new_points(:,:)
 ! FFTW arrays
 real(C_DOUBLE), pointer, private :: phys(:)
 complex(C_DOUBLE_COMPLEX), pointer, private :: coef(:)
@@ -47,6 +47,15 @@ integral_switch = integral_switch_input
 big = 1
 end subroutine set_switches
 
+subroutine set_when_to_adapt(radius,npoints,distance_percentage)
+implicit none
+double precision, intent(in) :: distance_percentage
+double precision, intent(in) :: radius
+integer, intent(in) :: npoints
+max_dist = 2*pi*radius/dble(npoints)*distance_percentage
+write(*,*) max_dist
+end subroutine set_when_to_adapt
+
 subroutine allocate_arrays(ndim,npoints)
 implicit none
 integer, intent(in) :: ndim
@@ -60,6 +69,7 @@ allocate(big_t(ndim,(1-big):(npoints+big)))
 allocate(f(ndim,npoints))
 allocate(fideal(ndim,npoints))
 allocate(sdiff(npoints))
+allocate(dist_diff(npoints))
 allocate(big_sdiff((1-big):(npoints+big)))
 allocate(s(npoints))
 allocate(big_s((1-big):(npoints+big)))
@@ -277,6 +287,24 @@ enddo
 sdiff = sdiff/sum(sdiff)*2.d0*pi
 end subroutine find_sdiff2
 
+subroutine find_distance(npoints)
+implicit none
+integer, intent(in) :: npoints
+integer :: i
+dist_diff(1) = sqrt(sum((points(:,1)-points(:,npoints))*(points(:,1)-points(:,npoints))))
+do concurrent(i=2:npoints)
+dist_diff(i) = sqrt(sum((points(:,i)-points(:,i-1))*(points(:,i)-points(:,i-1))))
+enddo
+end subroutine find_distance
+
+subroutine check_points_far(npoints)
+implicit none
+integer, intent(in) :: npoints
+integer :: i
+call find_distance(npoints)
+write(*,*) ANY(dist_diff .gt. max_dist)
+end subroutine check_points_far
+
 subroutine find_s(npoints,diff_vec,return_vec)
 implicit none
 integer, intent(in) :: npoints
@@ -400,6 +428,7 @@ deallocate(ts)
 deallocate(f)
 deallocate(fideal)
 deallocate(sdiff)
+deallocate(dist_diff)
 deallocate(big_sdiff)
 deallocate(s)
 deallocate(big_s)

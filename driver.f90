@@ -14,6 +14,7 @@ double precision :: eigval2
 double precision, allocatable :: fixed_point(:)
 double precision :: radius
 double precision :: dt
+double precision :: distance_percentage
 integer :: steps_per_save,stepnum
 integer :: saved_rings,ringnum
 
@@ -27,6 +28,7 @@ integral_switch = 2
 dt = 1.d-2
 steps_per_save = 1000;
 saved_rings = 15;
+distance_percentage = 2.d0;
 
 npoints = npoints_start
 call set_switches(sdiff_switch,t_switch,ts_switch,integral_switch)
@@ -55,7 +57,9 @@ call deallocate_arrays()
 call allocate_arrays(ndim,npoints)
 call set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoints)
 ringnum=1
+call set_when_to_adapt(radius,npoints,distance_percentage)
 call write_output(ringnum,npoints)
+call check_points_far(npoints)
 
 do ringnum=2,saved_rings
     do stepnum=1,steps_per_save
@@ -63,6 +67,7 @@ do ringnum=2,saved_rings
         call timestep(dt)
     enddo
     call write_output(ringnum,npoints)
+    call check_points_far(npoints)
 enddo
 
 call deallocate_arrays()
