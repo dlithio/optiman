@@ -23,6 +23,9 @@ double precision, allocatable, private :: f_dot_ts(:)
 double precision, allocatable, private :: first_integral(:)
 double precision, allocatable, private :: second_integral(:)
 double precision, allocatable, private :: phi(:)
+double precision, allocatable, private :: position_vec(:)
+double precision, allocatable, private :: new_position_vec(:)
+double precision, allocatable, private :: new_points(:,:)
 ! FFTW arrays
 real(C_DOUBLE), pointer, private :: phys(:)
 complex(C_DOUBLE_COMPLEX), pointer, private :: coef(:)
@@ -65,6 +68,7 @@ allocate(f_dot_ts(npoints))
 allocate(first_integral(npoints))
 allocate(second_integral(npoints))
 allocate(phi(npoints))
+allocate(position_vec(npoints))
 ! Allocate the fftw working arrays and set the plan
 fftw_data = fftw_alloc_complex(int((npoints/2+1), C_SIZE_T))
 call c_f_pointer(fftw_data, phys, [2*(npoints/2+1)])
@@ -83,7 +87,10 @@ do concurrent (i=2:npoints/2+1)
 fftw_integral(i) = dcmplx(0.d0,1.d0/dble(i-1))
 end do
 open(unit=100,file="output")
-write(100,*) ndim,npoints
+! Set up the position vector
+do i=1,npoints
+position_vec(i) = dble(i)/dble(npoints)
+enddo 
 end subroutine allocate_arrays
 
 subroutine set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoints)
@@ -102,6 +109,7 @@ points(:,i) = fixed_point + radius * &
                + eigval2*dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2)
 !write(*,*) '**',i,points(:,i),i,'**'
 end do
+!stop
 !points(:,1) =  (/ 1.99969539031d0, 0.03490481287d0, 0.d0 /)
 end subroutine set_initial_points
 
@@ -249,10 +257,13 @@ subroutine find_sdiff1(npoints)
 implicit none
 integer, intent(in) :: npoints
 integer :: i
-do concurrent(i=1:npoints)
-sdiff(i) = 2.d0*pi/dble(npoints)
+sdiff(1) = 2.d0*pi*position_vec(1)
+do concurrent(i=2:npoints)
+sdiff(i) = 2.d0*pi*(position_vec(i) - position_vec(i-1))
 enddo
-! write(*,*) sum(sdiff)
+!write(*,*) position_vec
+!write(*,*) sdiff
+!stop
 end subroutine find_sdiff1
 
 subroutine find_sdiff2(npoints)
@@ -365,9 +376,14 @@ double precision, intent(in) :: dt
 points = points + dt*fideal
 end subroutine timestep
 
-subroutine write_output()
+subroutine write_output(ringnum,npoints)
 implicit none
-write(100,*) points
+integer, intent(in) :: ringnum
+integer, intent(in) :: npoints
+integer :: i
+do i=1,npoints
+write(100,*) dble(ringnum),points(:,i)
+enddo
 end subroutine write_output
 
 subroutine deallocate_arrays()
@@ -399,6 +415,7 @@ nullify(phys)
 nullify(coef)
 deallocate(fftw_derivative)
 deallocate(fftw_integral)
+deallocate(position_vec)
 close(100)
 end subroutine deallocate_arrays
 

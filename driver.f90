@@ -24,9 +24,9 @@ sdiff_switch = 1
 t_switch = 2
 ts_switch = 2
 integral_switch = 2
-dt = 1.d-3
+dt = 1.d-2
 steps_per_save = 1000;
-saved_rings = 150;
+saved_rings = 15;
 
 npoints = npoints_start
 call set_switches(sdiff_switch,t_switch,ts_switch,integral_switch)
@@ -34,8 +34,10 @@ call allocate_arrays(ndim,npoints)
 
 allocate(eigvec1(ndim))
 allocate(eigvec2(ndim))
-eigvec1 = (/ 0.61482d0, -0.78867d0, 0.d0 /)
-eigvec2 = (/ 0.d0, 0.d0, 1.d0 /)
+eigvec1 = (/ 1.d0, 0.d0, 0.d0 /)
+eigvec2 = (/ 0.d0, 1.d0, 0.d0 /)
+!eigvec1 = (/ 0.61482d0, -0.78867d0, 0.d0 /)
+!eigvec2 = (/ 0.d0, 0.d0, 1.d0 /)
 eigval1 = 1.d0
 eigval2 = 1.d0
 allocate(fixed_point(ndim))
@@ -43,16 +45,24 @@ fixed_point = (/ 0.d0, 0.d0, 0.d0 /)
 call set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoints)
 
 call find_fideal(ndim,npoints)
+open(unit=101,file="header")
+write(101,*) ndim
+write(101,*) saved_rings
+write(101,*) steps_per_save
+write(101,*) dt
+close(101)
 call deallocate_arrays()
 call allocate_arrays(ndim,npoints)
 call set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoints)
+ringnum=1
+call write_output(ringnum,npoints)
 
 do ringnum=2,saved_rings
     do stepnum=1,steps_per_save
         call find_fideal(ndim,npoints)
         call timestep(dt)
     enddo
-    call write_output()
+    call write_output(ringnum,npoints)
 enddo
 
 call deallocate_arrays()
