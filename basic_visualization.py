@@ -14,7 +14,7 @@ rings = np.loadtxt('output')
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 
-for i in range(24,26):
+for i in range(1,int(saved_rings+1)):
     myrows = np.where( rings[:,0] == i )
     ax.plot(rings[myrows,1][0],rings[myrows,2][0],rings[myrows,3][0])
 #ax.plot(rings[-1,:,0],rings[-1,:,1],rings[-1,:,2])
