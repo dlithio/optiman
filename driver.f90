@@ -24,7 +24,7 @@ integer :: saved_rings,ringnum
 logical :: something_wrong
 
 allocate(par(36))
-npoints_start = 128
+npoints_start = 256
 ndim = 8
 radius = 1.d-1
 sdiff_switch = 2
@@ -32,12 +32,12 @@ t_switch = 2
 ts_switch = 2
 integral_switch = 2
 dt = 1.d-3
-steps_per_save = 100;
-saved_rings = 50;
+steps_per_save = 2500;
+saved_rings = 40;
 distance_percentagefar = 3.d0;
-distance_percentageclose = 0.25d0;
+distance_percentageclose = 0.50d-30;
 f_switch = 3;
-par(1) = 31.45d0
+par(1) = 33.0d0
 par(2) = dble(ndim)
 call setup(par)
 
@@ -52,13 +52,23 @@ allocate(eigvec2(ndim))
 !eigvec1 = (/ 0.61482d0, -0.78867d0, 0.d0 /)
 !eigvec2 = (/ 0.d0, 0.d0, 1.d0 /)
 eigvec1 = 0.d0
-eigvec1(1) = 1.d0
+eigvec1(1) = .2659d0
+eigvec1(3) = -.88239d0
+eigvec1(5) = .2651d0
+eigvec1(7) = -.04816d0
 eigvec2 = 0.d0
-eigvec2(2) = 1.d0
+eigvec2(1) = .27920d0
+eigvec2(3) = 0.0d0
+eigvec2(5) = .01184d0
+eigvec2(7) = -.00151d0
 eigval1 = 1.d0
 eigval2 = 1.d0
 allocate(fixed_point(ndim))
 fixed_point = 0.d0
+fixed_point = (/ 0.d0,   5.7274d00,   0.d0,&
+        -1.965d00,  0.d0,   2.7422d-01,&
+         0.d0,  -3.2382d-02 /)
+
 call set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoints)
 
 call find_f(ndim,npoints)
