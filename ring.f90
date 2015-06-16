@@ -111,7 +111,6 @@ fftw_integral(1) = dcmplx(0.d0,0.d0)
 do concurrent (i=2:npoints/2+1)
 fftw_integral(i) = dcmplx(0.d0,1.d0/dble(i-1))
 end do
-open(unit=100,file="output")
 ! Set up the position vector
 do i=1,npoints
 position_vec(i) = dble(i)/dble(npoints)
@@ -379,6 +378,7 @@ if (any(dist_diff .gt. max_dist)) then
     points = points_new
     position_vec = position_vec_new
 endif
+call find_distance(points,dist_diff,new_npoints)
 if (any(dist_diff .lt. min_dist) .and. (.not. made_change)) then
     ! Now remove points that are too close
     deallocate(points_new)
@@ -580,7 +580,7 @@ integer, intent(in) :: ringnum
 integer, intent(in) :: npoints
 integer :: i
 do i=1,npoints
-write(100,*) dble(ringnum),points(:,i)
+write(217) dble(ringnum),points(:,i)
 enddo
 end subroutine write_output
 

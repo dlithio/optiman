@@ -9,6 +9,7 @@ integer :: t_switch
 integer :: f_switch
 integer :: ts_switch
 integer :: integral_switch
+integer :: i
 double precision, allocatable :: eigvec1(:)
 double precision, allocatable :: eigvec2(:)
 double precision, allocatable :: par(:)
@@ -24,21 +25,24 @@ integer :: saved_rings,ringnum
 logical :: something_wrong
 
 allocate(par(36))
-npoints_start = 256
-ndim = 8
+npoints_start = 64
+ndim = 112
 radius = 1.d-1
 sdiff_switch = 2
 t_switch = 2
 ts_switch = 2
 integral_switch = 2
 dt = 1.d-3
-steps_per_save = 250;
-saved_rings = 260;
+steps_per_save = 100;
+saved_rings = 50;
 distance_percentagefar = 3.d0;
 distance_percentageclose = 0.50d-30;
 f_switch = 3;
-par(1) = 33.0d0
-par(2) = dble(ndim)
+open(100,file="par")
+do i=1,36
+read(100,*) PAR(i)
+enddo
+close(100)
 call setup(par)
 
 npoints = npoints_start
@@ -47,28 +51,25 @@ call allocate_arrays(ndim,npoints)
 
 allocate(eigvec1(ndim))
 allocate(eigvec2(ndim))
-!eigvec1 = (/ 1.d0, 0.d0, 0.d0 /)
-!eigvec2 = (/ 0.d0, 1.d0, 0.d0 /)
-!eigvec1 = (/ 0.61482d0, -0.78867d0, 0.d0 /)
-!eigvec2 = (/ 0.d0, 0.d0, 1.d0 /)
-eigvec1 = 0.d0
-eigvec1(1) = .2659d0
-eigvec1(3) = -.88239d0
-eigvec1(5) = .2651d0
-eigvec1(7) = -.04816d0
-eigvec2 = 0.d0
-eigvec2(1) = .27920d0
-eigvec2(3) = 0.0d0
-eigvec2(5) = .01184d0
-eigvec2(7) = -.00151d0
+open(100,file="eigvec1")
+do i=1,ndim
+read(100,*) eigvec1(i)
+enddo
+close(100)
+open(100,file="eigvec2")
+do i=1,ndim
+read(100,*) eigvec2(i)
+enddo
+close(100)
+allocate(fixed_point(ndim))
+open(100,file="59")
+do i=1,ndim
+read(100,*) fixed_point(i)
+enddo
+close(100)
+
 eigval1 = 1.d0
 eigval2 = 1.d0
-allocate(fixed_point(ndim))
-fixed_point = 0.d0
-fixed_point = (/ 0.d0,   5.7274d00,   0.d0,&
-        -1.965d00,  0.d0,   2.7422d-01,&
-         0.d0,  -3.2382d-02 /)
-
 call set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoints)
 
 call find_f(ndim,npoints)
@@ -99,8 +100,10 @@ do ringnum=2,saved_rings
         call accept_new_ring()
     enddo
     call write_output(ringnum,npoints)
+    write(*,*) dble(ringnum)/dble(saved_rings)*100.d0,"%"
 enddo
 
 call deallocate_arrays()
+close(217)
 
 end program driver
