@@ -319,23 +319,31 @@ implicit none
 integer, intent(in) :: npoints
 logical, intent(inout) :: something_wrong
 call find_distance(points_new,dist_diff,npoints)
-something_wrong = (something_wrong .OR. any(dist_diff .gt. max_dist))
+something_wrong = any(dist_diff .gt. max_dist)
 end subroutine check_points_far
 
 subroutine check_points_close(npoints,something_wrong)
 implicit none
 integer, intent(in) :: npoints
 logical, intent(inout) :: something_wrong
-something_wrong = (something_wrong .OR. any(dist_diff .lt. min_dist))
+something_wrong = any(dist_diff .lt. min_dist)
 end subroutine check_points_close
 
 subroutine check_new_ring(npoints,something_wrong)
 implicit none
 integer, intent(in) :: npoints
 logical, intent(inout) :: something_wrong
-something_wrong = .FALSE.
-call check_points_far(npoints,something_wrong)
-call check_points_close(npoints,something_wrong)
+logical :: something_wrong_far
+logical :: something_wrong_close
+call check_points_far(npoints,something_wrong_far)
+call check_points_close(npoints,something_wrong_close)
+something_wrong = (something_wrong_far .OR. something_wrong_close)
+!if (something_wrong_close) then
+!write(*,*) "something_is_wrong_close"
+!if (something_wrong_far) then
+!write(*,*) "something_is_wrong_fartoo"
+!endif
+!endif
 end subroutine check_new_ring
 
 subroutine accept_new_ring()
@@ -377,11 +385,18 @@ if (any(dist_diff .gt. max_dist)) then
     npointsold = new_npoints
     points = points_new
     position_vec = position_vec_new
+    call find_distance(points,dist_diff,new_npoints)
 endif
-call find_distance(points,dist_diff,new_npoints)
+
+!if (any(dist_diff .lt. min_dist)) then
+!    write(*,*) "hi"
+!    if (.not. made_change) then
+!        write(*,*) "ho"
+!    endif
+!endif
 if (any(dist_diff .lt. min_dist) .and. (.not. made_change)) then
-    write(*,*) "hi"
     ! Now remove points that are too close
+!    write(*,*) "hiho"
     deallocate(points_new)
     deallocate(position_vec_new)
     new_npoints = npointsold - count(dist_diff .lt. min_dist)
