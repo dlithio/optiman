@@ -380,6 +380,7 @@ if (any(dist_diff .gt. max_dist)) then
 endif
 call find_distance(points,dist_diff,new_npoints)
 if (any(dist_diff .lt. min_dist) .and. (.not. made_change)) then
+    write(*,*) "hi"
     ! Now remove points that are too close
     deallocate(points_new)
     deallocate(position_vec_new)

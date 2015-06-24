@@ -33,11 +33,11 @@ t_switch = 2
 ts_switch = 2
 integral_switch = 2
 dt = 1.d-3
-steps_per_save = 100;
-saved_rings = 50;
+steps_per_save = 300;
+saved_rings = 200;
 distance_percentagefar = 3.d0;
-distance_percentageclose = 0.50d-30;
-f_switch = 3;
+distance_percentageclose = 0.25d0;
+f_switch = 1;
 open(100,file="par")
 do i=1,36
 read(100,*) PAR(i)
@@ -62,7 +62,7 @@ read(100,*) eigvec2(i)
 enddo
 close(100)
 allocate(fixed_point(ndim))
-open(100,file="59")
+open(100,file="85")
 do i=1,ndim
 read(100,*) fixed_point(i)
 enddo

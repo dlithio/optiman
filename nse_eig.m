@@ -1,4 +1,4 @@
-jac = textread("jac_output_59");
+jac = textread("jac_output_85");
 jac = reshape(jac,112,112);
 [V, lambda] = eig (jac);
 idx = find(real(diag(lambda)) > 0);
