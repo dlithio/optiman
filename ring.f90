@@ -30,6 +30,8 @@ double precision, allocatable, private :: phi(:)
 double precision, allocatable, private :: position_vec(:)
 double precision, allocatable, private :: points_new(:,:)
 double precision, allocatable, private :: position_vec_new(:)
+double precision, allocatable, private :: f_change_scalar(:)
+double precision, allocatable, private :: f_change_scalart(:)
 ! FFTW arrays
 real(C_DOUBLE), pointer, private :: phys(:)
 complex(C_DOUBLE_COMPLEX), pointer, private :: coef(:)
@@ -84,6 +86,8 @@ allocate(sdiff(npoints))
 allocate(dist_diff(npoints))
 allocate(big_sdiff((1-big):(npoints+big)))
 allocate(s(npoints))
+allocate(f_change_scalar(npoints))
+allocate(f_change_scalart(npoints))
 allocate(big_s((1-big):(npoints+big)))
 allocate(f_dot_t(npoints))
 allocate(f_dot_ts(npoints))
@@ -578,10 +582,59 @@ call find_second_integral(npoints)
 phi = first_integral - second_integral
 phi = phi - sum(phi)/npoints
 call dot(t,f,f_dot_t,npoints)
+!! My ad-hoc changes
+!f_change_scalart = 0.d0
+!do i=1,npoints
+!    if ((dabs(f_dot_t(i)) .ge. 0.2d0) .and. (dabs(f_dot_t(i)) .le. 0.8d0)) then
+!        !f_change_scalart(i) = (phi(i) - f_dot_t(i))*(0.5d0-dabs(f_dot_t(i)))/0.5d0
+!        f_change_scalart(i) = (phi(i) - f_dot_t(i))
+!    endif
+!    if ((dabs(f_dot_t(i)) .ge. 0.1d0) .and. (dabs(f_dot_t(i)) .lt. 0.2d0)) then
+!        !f_change_scalart(i) = (phi(i) - f_dot_t(i))*(0.5d0-dabs(f_dot_t(i)))/0.5d0
+!        f_change_scalart(i) = (phi(i) - f_dot_t(i))*(0.2d0-dabs(f_dot_t(i)))/0.1d0
+!    endif
+!    if ((dabs(f_dot_t(i)) .gt. 0.8d0) .and. (dabs(f_dot_t(i)) .le. 0.9d0)) then
+!        !f_change_scalart(i) = (phi(i) - f_dot_t(i))*(0.5d0-dabs(f_dot_t(i)))/0.5d0
+!        f_change_scalart(i) = (phi(i) - f_dot_t(i))*(0.9d0-dabs(f_dot_t(i)))/0.1d0
+!    endif
+!!    if (dabs(f_dot_t(i)) .gt. 0.5d0) then
+!!        f_change_scalart(i) = 0.d0
+!!    endif
+!enddo
+!!f_change_scalar(1) = (sum(f_change_scalart(1:2))+f_change_scalart(npoints))/3.d0
+!!f_change_scalar(npoints) = (sum(f_change_scalart(npoints-1:npoints))+f_change_scalart(1))/3.d0
+!!do i=2,npoints-1
+!!    f_change_scalar(i) = sum(f_change_scalart(i-1:i+1))/3.d0
+!!enddo
+!f_change_scalar = f_change_scalart
+!! And now make the changes
+!do i=1,npoints
+!    fideal(:,i) = f(:,i) + f_change_scalar(i) * t(:,i)
+!!    write(*,*) '**',i,fideal(:,i),i,'**'
+!enddo
+! My ad-hoc changes2
+f_change_scalart = 0.d0
 do i=1,npoints
-    fideal(:,i) = f(:,i) + (phi(i) - f_dot_t(i)) * t(:,i)
+    if (dabs(f_dot_t(i)) .le. 0.99d0) then
+        fideal(:,i) = f(:,i) + (phi(i) - f_dot_t(i)) * t(:,i)
+    endif
+    if ((dabs(f_dot_t(i)) .gt. 0.99d0)) then
+        fideal(:,i) = 0.d0
+    endif
+enddo
+!f_change_scalar(1) = (sum(f_change_scalart(1:2))+f_change_scalart(npoints))/3.d0
+!f_change_scalar(npoints) = (sum(f_change_scalart(npoints-1:npoints))+f_change_scalart(1))/3.d0
+!do i=2,npoints-1
+!    f_change_scalar(i) = sum(f_change_scalart(i-1:i+1))/3.d0
+!enddo
+f_change_scalar = f_change_scalart
+! And now make the changes
+do i=1,npoints
+    fideal(:,i) = f(:,i) + f_change_scalar(i) * t(:,i)
 !    write(*,*) '**',i,fideal(:,i),i,'**'
 enddo
+! Another important change (?) with the adhoc changes.
+! call normc(fideal,npoints)
 end subroutine find_fideal
 
 subroutine timestep(dt)
@@ -597,6 +650,9 @@ integer, intent(in) :: npoints
 integer :: i
 do i=1,npoints
 write(217) dble(ringnum),points(:,i)
+write(218) dble(ringnum),f_dot_t(i)
+write(219) dble(ringnum),f_change_scalart(i)
+write(220) dble(ringnum),f_change_scalar(i)
 enddo
 end subroutine write_output
 
@@ -631,6 +687,8 @@ nullify(coef)
 deallocate(fftw_derivative)
 deallocate(fftw_integral)
 deallocate(position_vec)
+deallocate(f_change_scalar)
+deallocate(f_change_scalart)
 end subroutine deallocate_arrays
 
 end module ring

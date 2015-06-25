@@ -26,8 +26,10 @@ def read_array(filename,datatype):
 #rings.shape = (numrows,ndim+1)
 
 rings2 = read_array('output',np.float64)
+fdot = read_array('fdot',np.float64)
 numrows = rings2.shape[0]/(ndim+1)
 rings2.shape = (numrows,ndim+1)
+fdot.shape = (numrows,2)
 
 # Plot files
 # Controls which dimensions are plotted
@@ -42,8 +44,6 @@ ax = fig.gca(projection='3d')
     #myrows = np.where( rings[:,0] == i )
     #ax.plot(rings[myrows,dims[0]][0],rings[myrows,dims[1]][0],rings[myrows,dims[2]][0])
 ##ax.plot(rings[-1,:,0],rings[-1,:,1],rings[-1,:,2])
-
-saved_rings = 26
 
 for i in range(1,int(saved_rings+1)):
     myrows = np.where( rings2[:,0] == i )
@@ -60,3 +60,11 @@ ax.set_xlabel("Mode "+str(dims[0])+"=("+str(int(kx[dims[0]-1]))+","+str(int(ky[d
 ax.set_ylabel("Mode "+str(dims[1])+"=("+str(int(kx[dims[1]-1]))+","+str(int(ky[dims[1]-1]))+")")
 ax.set_zlabel("Mode "+str(dims[2])+"=("+str(int(kx[dims[2]-1]))+","+str(int(ky[dims[2]-1]))+")")
 plt.show()
+
+
+#i = 26
+#myrows = np.where( rings2[:,0] == i )
+#fig = plt.figure()
+#ax = fig.add_subplot(111, projection='3d')
+#ax.scatter(rings2[myrows,dims[0]][0][::4],rings2[myrows,dims[1]][0][::4],rings2[myrows,dims[2]][0][::4],c=((fdot[myrows,1][0][::4]+1.0)/2.0),cmap='bwr')
+#plt.show()

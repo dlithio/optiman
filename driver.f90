@@ -10,6 +10,7 @@ integer :: f_switch
 integer :: ts_switch
 integer :: integral_switch
 integer :: i
+integer :: fix_trys
 double precision, allocatable :: eigvec1(:)
 double precision, allocatable :: eigvec2(:)
 double precision, allocatable :: par(:)
@@ -62,7 +63,7 @@ read(100,*) eigvec2(i)
 enddo
 close(100)
 allocate(fixed_point(ndim))
-open(100,file="85")
+open(100,file="59")
 do i=1,ndim
 read(100,*) fixed_point(i)
 enddo
@@ -91,12 +92,21 @@ do ringnum=2,saved_rings
         call find_f(ndim,npoints)
         call timestep(dt)
         call check_new_ring(npoints,something_wrong)
+        fix_trys = 0
         do while (something_wrong)
             call fix_old_ring(ndim,npoints)
             call find_f(ndim,npoints)
             call timestep(dt) 
             call check_new_ring(npoints,something_wrong)
+            if (npoints .gt. 100000) then
+                write(*,*) "too many points ",npoints
+                stop
+            endif
+            fix_trys = fix_trys + 1
         enddo
+        if (fix_trys .gt. 1) then
+            write(*,*) "fix_trys ",fix_trys
+        endif
         call accept_new_ring()
     enddo
     call write_output(ringnum,npoints)
@@ -105,5 +115,8 @@ enddo
 
 call deallocate_arrays()
 close(217)
+close(218)
+close(219)
+close(220)
 
 end program driver

@@ -63,7 +63,13 @@ call auto_state_to_force(U,F,PAR)
 my_status = .TRUE.
 call set_status(my_status)
 call system( 'rm output' )
+call system( 'rm fdot' )
+call system( 'rm changet' )
+call system( 'rm change' )
 open(unit=217,file="output",access='stream')
+open(unit=218,file="fdot",access='stream')
+open(unit=219,file="changet",access='stream')
+open(unit=220,file="change",access='stream')
 
 end subroutine setup
 
