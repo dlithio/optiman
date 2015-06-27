@@ -29,7 +29,6 @@ rings2 = read_array('output',np.float64)
 fdot = read_array('fdot',np.float64)
 numrows = rings2.shape[0]/(ndim+1)
 rings2.shape = (numrows,ndim+1)
-fdot.shape = (numrows,2)
 
 # Plot files
 # Controls which dimensions are plotted
