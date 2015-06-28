@@ -1,5 +1,4 @@
 module ring
-use FFTW3
 implicit none
 double precision, private :: pi=4.d0*datan(1.d0)
 double precision, private :: max_dist
@@ -33,25 +32,14 @@ double precision, allocatable, private :: position_vec_new(:)
 double precision, allocatable, private :: f_change_scalar(:)
 double precision, allocatable, private :: f_change_scalart(:)
 ! FFTW arrays
-real(C_DOUBLE), pointer, private :: phys(:)
-complex(C_DOUBLE_COMPLEX), pointer, private :: coef(:)
-type(C_PTR), private :: planr2c, planc2r, fftw_data
-complex(kind=8), allocatable, private :: fftw_derivative(:)
-complex(kind=8), allocatable, private :: fftw_integral(:)
 logical, private :: first_run = .TRUE.
 contains
 
-subroutine set_switches(sdiff_switch_input,t_switch_input,ts_switch_input,integral_switch_input,f_switch_input)
+subroutine set_switches(sdiff_switch_input,f_switch_input)
 implicit none
 integer, intent(in) :: sdiff_switch_input
-integer, intent(in) :: t_switch_input
-integer, intent(in) :: ts_switch_input
-integer, intent(in) :: integral_switch_input
 integer, intent(in) :: f_switch_input
 sdiff_switch = sdiff_switch_input
-t_switch = t_switch_input
-ts_switch = ts_switch_input
-integral_switch = integral_switch_input
 f_switch = f_switch_input
 big = 1
 end subroutine set_switches
@@ -98,23 +86,6 @@ allocate(position_vec(npoints))
 if (first_run) then 
 allocate(position_vec_new(npoints))
 endif
-! Allocate the fftw working arrays and set the plan
-fftw_data = fftw_alloc_complex(int((npoints/2+1), C_SIZE_T))
-call c_f_pointer(fftw_data, phys, [2*(npoints/2+1)])
-call c_f_pointer(fftw_data, coef, [npoints/2+1])
-planr2c = fftw_plan_dft_r2c_1d(npoints,phys,coef,FFTW_ESTIMATE)
-planc2r= fftw_plan_dft_c2r_1d(npoints,coef,phys,FFTW_ESTIMATE)
-! Set the derivative
-allocate(fftw_derivative(npoints/2+1))
-do concurrent (i=1:npoints/2+1)
-fftw_derivative(i) = dcmplx(0.d0,dble(i-1))
-end do
-! Set the integral
-allocate(fftw_integral(npoints/2+1))
-fftw_integral(1) = dcmplx(0.d0,0.d0)
-do concurrent (i=2:npoints/2+1)
-fftw_integral(i) = dcmplx(0.d0,1.d0/dble(i-1))
-end do
 ! Set up the position vector
 do i=1,npoints
 position_vec(i) = dble(i)/dble(npoints)
@@ -138,42 +109,9 @@ points(:,i) = fixed_point + radius * &
                + eigval2*dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2)
 !write(*,*) '**',i,points(:,i),i,'**'
 end do
-!stop
-!points(:,1) =  (/ 1.99969539031d0, 0.03490481287d0, 0.d0 /)
 end subroutine set_initial_points
 
 subroutine points_to_tangent(ndim,npoints)
-implicit none
-integer, intent(in) :: ndim
-integer, intent(in) :: npoints
-if (t_switch .eq. 1) then
-call points_to_tangent1(ndim,npoints)
-endif
-if (t_switch .eq. 2) then
-call points_to_tangent2(ndim,npoints)
-endif
-end subroutine points_to_tangent
-
-subroutine points_to_tangent1(ndim,npoints)
-implicit none
-integer, intent(in) :: ndim
-integer, intent(in) :: npoints
-integer :: i
-do i=1,ndim
-    phys = 0.d0
-    phys(1:npoints) = points(i,:)
-    call fftw_execute_dft_r2c(planr2c, phys, coef)
-    coef = coef*fftw_derivative
-    call fftw_execute_dft_c2r(planc2r, coef, phys)
-    t(i,:) = phys(1:npoints)/dble(npoints)
-end do
-call normc(t,npoints)
-!do concurrent (i=1:ndim)
-!    write(*,*) i,'AAA',points(i,:),'AAA',t(i,:)
-!enddo
-end subroutine points_to_tangent1
-
-subroutine points_to_tangent2(ndim,npoints)
 implicit none
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
@@ -189,42 +127,9 @@ do i=1,npoints
             0.5d0*(big_points(:,i+1)-big_points(:,i))/big_sdiff(i+1)
 end do
 call normc(t,npoints)
-!do concurrent (i=1:ndim)
-!    write(*,*) i,'AAA',points(i,:),'AAA',t(i,:)
-!enddo
-end subroutine points_to_tangent2
+end subroutine points_to_tangent
 
 subroutine tangent_to_ts(ndim,npoints)
-implicit none
-integer, intent(in) :: ndim
-integer, intent(in) :: npoints
-if (ts_switch .eq. 1) then
-call tangent_to_ts1(ndim,npoints)
-endif
-if (ts_switch .eq. 2) then
-call tangent_to_ts2(ndim,npoints)
-endif
-end subroutine tangent_to_ts
-
-subroutine tangent_to_ts1(ndim,npoints)
-implicit none
-integer, intent(in) :: ndim
-integer, intent(in) :: npoints
-integer :: i
-do i=1,ndim
-    phys = 0.d0
-    phys(1:npoints) = t(i,:)
-    call fftw_execute_dft_r2c(planr2c, phys, coef)
-    coef = coef*fftw_derivative
-    call fftw_execute_dft_c2r(planc2r, coef, phys)
-    ts(i,:) = phys(1:npoints)/dble(npoints)
-end do
-!do concurrent (i=1:ndim)
-!    write(*,*) i,'AAA',points(i,:),'AAA',ts(i,:)
-!enddo
-end subroutine tangent_to_ts1
-
-subroutine tangent_to_ts2(ndim,npoints)
 implicit none
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
@@ -242,7 +147,7 @@ end do
 !do concurrent (i=1:ndim)
 !    write(*,*) i,'AAA',points(i,:),'AAA',t(i,:)
 !enddo
-end subroutine tangent_to_ts2
+end subroutine tangent_to_ts
 
 subroutine points_to_f(ndim,npoints)
 use user_functions
@@ -342,12 +247,6 @@ logical :: something_wrong_close
 call check_points_far(npoints,something_wrong_far)
 call check_points_close(npoints,something_wrong_close)
 something_wrong = (something_wrong_far .OR. something_wrong_close)
-!if (something_wrong_close) then
-!write(*,*) "something_is_wrong_close"
-!if (something_wrong_far) then
-!write(*,*) "something_is_wrong_fartoo"
-!endif
-!endif
 end subroutine check_new_ring
 
 subroutine accept_new_ring()
@@ -391,16 +290,8 @@ if (any(dist_diff .gt. max_dist)) then
     position_vec = position_vec_new
     call find_distance(points,dist_diff,new_npoints)
 endif
-
-!if (any(dist_diff .lt. min_dist)) then
-!    write(*,*) "hi"
-!    if (.not. made_change) then
-!        write(*,*) "ho"
-!    endif
-!endif
 if (any(dist_diff .lt. min_dist) .and. (.not. made_change)) then
     ! Now remove points that are too close
-!    write(*,*) "hiho"
     deallocate(points_new)
     deallocate(position_vec_new)
     new_npoints = npointsold - count(dist_diff .lt. min_dist)
@@ -482,38 +373,12 @@ end subroutine dot
 subroutine find_first_integral(npoints)
 implicit none
 integer, intent(in) :: npoints
-if (integral_switch .eq. 1) then
-call find_first_integral1(npoints)
-endif
-if (integral_switch .eq. 2) then
-call find_first_integral2(npoints)
-endif
-end subroutine find_first_integral
-
-subroutine find_first_integral1(npoints)
-implicit none
-integer, intent(in) :: npoints
-phys = 0.d0
-phys(1:npoints) = f_dot_ts
-call fftw_execute_dft_r2c(planr2c, phys, coef)
-! Integrate the mean
-first_integral = dreal(coef(1))/12.d0*s
-coef = coef*fftw_integral
-call fftw_execute_dft_c2r(planc2r, coef, phys)
-first_integral = first_integral + phys(1:npoints)/dble(npoints)
-!write(*,*) 'f_dot_ts',f_dot_ts
-!write(*,*) 'first_integral',first_integral
-end subroutine find_first_integral1
-
-subroutine find_first_integral2(npoints)
-implicit none
-integer, intent(in) :: npoints
 integer :: i
 first_integral(1) = sdiff(1)*(0.5d0*f_dot_ts(npoints) + 0.5d0*f_dot_ts(1))
 do i=2,npoints
 first_integral(i) = first_integral(i-1)+sdiff(i)*(0.5d0*f_dot_ts(i) + 0.5d0*f_dot_ts(i-1))
 enddo
-end subroutine find_first_integral2
+end subroutine find_first_integral
 
 subroutine find_second_integral(npoints)
 implicit none
@@ -613,7 +478,7 @@ call dot(t,f,f_dot_t,npoints)
 !!    write(*,*) '**',i,fideal(:,i),i,'**'
 !enddo
 ! My ad-hoc changes2
-f_change_scalart = 0.d0
+!f_change_scalart = 0.d0
 do i=1,npoints
     if (dabs(f_dot_t(i)) .le. 0.99d0) then
         fideal(:,i) = f(:,i) + (phi(i) - f_dot_t(i)) * t(:,i)
@@ -627,12 +492,12 @@ enddo
 !do i=2,npoints-1
 !    f_change_scalar(i) = sum(f_change_scalart(i-1:i+1))/3.d0
 !enddo
-f_change_scalar = f_change_scalart
+!f_change_scalar = f_change_scalart
 ! And now make the changes
-do i=1,npoints
-    fideal(:,i) = f(:,i) + f_change_scalar(i) * t(:,i)
-!    write(*,*) '**',i,fideal(:,i),i,'**'
-enddo
+!do i=1,npoints
+!    fideal(:,i) = f(:,i) + f_change_scalar(i) * t(:,i)
+!!    write(*,*) '**',i,fideal(:,i),i,'**'
+!enddo
 ! Another important change (?) with the adhoc changes.
 ! call normc(fideal,npoints)
 end subroutine find_fideal
@@ -649,10 +514,9 @@ integer, intent(in) :: ringnum
 integer, intent(in) :: npoints
 integer :: i
 do i=1,npoints
+if (f_dot_t(i) .le. 0.99d0) then
 write(217) dble(ringnum),points(:,i)
-write(218) dble(ringnum),f_dot_t(i)
-write(219) dble(ringnum),f_change_scalart(i)
-write(220) dble(ringnum),f_change_scalar(i)
+endif
 enddo
 end subroutine write_output
 
@@ -679,13 +543,6 @@ deallocate(f_dot_ts)
 deallocate(first_integral)
 deallocate(second_integral)
 deallocate(phi)
-call fftw_destroy_plan(planr2c)
-call fftw_destroy_plan(planc2r)
-call fftw_free(fftw_data)
-nullify(phys)
-nullify(coef)
-deallocate(fftw_derivative)
-deallocate(fftw_integral)
 deallocate(position_vec)
 deallocate(f_change_scalar)
 deallocate(f_change_scalart)

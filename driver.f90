@@ -13,7 +13,7 @@ integer :: i
 integer :: fix_trys
 double precision, allocatable :: eigvec1(:)
 double precision, allocatable :: eigvec2(:)
-double precision, allocatable :: par(:)
+double precision :: par(36)
 double precision :: eigval1
 double precision :: eigval2
 double precision, allocatable :: fixed_point(:)
@@ -24,30 +24,26 @@ double precision :: distance_percentageclose
 integer :: steps_per_save,stepnum
 integer :: saved_rings,ringnum
 logical :: something_wrong
+namelist /optiman_input/ npoints_start,radius,dt,steps_per_save,saved_rings,distance_percentagefar,distance_percentageclose,f_switch
 
-allocate(par(36))
-npoints_start = 64
-ndim = 112
-radius = 1.d-1
+open(100,file="optiman_input",delim='APOSTROPHE')
+read(100,nml=optiman_input)
+close(100)
+
 sdiff_switch = 2
-t_switch = 2
-ts_switch = 2
-integral_switch = 2
-dt = 1.d-3
-steps_per_save = 50;
-saved_rings = 300;
-distance_percentagefar = 3.d0;
-distance_percentageclose = 0.1d0;
-f_switch = 1;
 open(100,file="par")
 do i=1,36
 read(100,*) PAR(i)
 enddo
 close(100)
+ndim = par(36)
 call setup(par)
 
+call system( 'rm output' )
+open(unit=217,file="output",access='stream')
+
 npoints = npoints_start
-call set_switches(sdiff_switch,t_switch,ts_switch,integral_switch,f_switch)
+call set_switches(sdiff_switch,f_switch)
 call allocate_arrays(ndim,npoints)
 
 allocate(eigvec1(ndim))
@@ -63,7 +59,7 @@ read(100,*) eigvec2(i)
 enddo
 close(100)
 allocate(fixed_point(ndim))
-open(100,file="59")
+open(100,file="fixed_point")
 do i=1,ndim
 read(100,*) fixed_point(i)
 enddo
@@ -115,8 +111,5 @@ enddo
 
 call deallocate_arrays()
 close(217)
-close(218)
-close(219)
-close(220)
 
 end program driver

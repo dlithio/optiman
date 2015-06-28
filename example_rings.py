@@ -79,7 +79,8 @@ dims = [1,2,4]
 full_dims = [0]
 full_dims.extend(dims)
 #myrows = np.where( (rings2[:,0] <= 17) and (rings2[:,0] >= 16))
-rings = rings2[(rings2[:,0] >= 1) & (rings2[:,0] <= 10000)][:,full_dims]
+#rings = rings2[(rings2[:,0] >= 1) & (rings2[:,0] <= 10000)][:,full_dims]
+rings = rings2
 
 # Function to get start points of each ring
 def get_start_points(rings):
@@ -161,8 +162,10 @@ get_top_to_bottom(bottom_triangles,top_triangles,start_points,end_points)
 
 # Now visualize it
 # The TVTK dataset.
+dims = [1,2,3]
 all_triangles = np.concatenate((bottom_triangles,top_triangles), axis=0)
-mesh = tvtk.PolyData(points=rings[:,1:], polys=all_triangles)
+#mesh = tvtk.PolyData(points=rings[:,1:], polys=all_triangles)
+mesh = tvtk.PolyData(points=rings[:,dims], polys=all_triangles)
 #mesh = tvtk.PolyData(points=rings[:,1:], polys=bottom_triangles[:2,:])
 mesh.point_data.scalars = rings[:,0]
 mesh.point_data.scalars.name = 'Time'

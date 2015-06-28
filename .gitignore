@@ -31,3 +31,11 @@
 #other
 output*
 header
+eigval*
+eigvec*
+fixed_point
+*_input
+par
+fixed_point_guess
+old_par
+initial_guess
