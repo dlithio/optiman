@@ -34,19 +34,30 @@ double precision, allocatable, private :: points_new(:,:)
 double precision, allocatable, private :: position_vec_new(:)
 double precision, allocatable, private :: f_change_scalar(:)
 double precision, allocatable, private :: f_change_scalart(:)
-! FFTW arrays
 logical, private :: first_run = .TRUE.
 contains
 
 subroutine set_switches(sdiff_switch_input,t_switch_input,ts_switch_input,integral_switch_input,f_switch_input,interp_switch_input)
 implicit none
 integer, intent(in) :: sdiff_switch_input
+integer, intent(in) :: t_switch_input
+integer, intent(in) :: ts_switch_input
+integer, intent(in) :: integral_switch_input
 integer, intent(in) :: f_switch_input
 integer, intent(in) :: interp_switch_input
-sdiff_switch = sdiff_switch_input
-f_switch = f_switch_input
-interp_switch = interp_switch_input
+sdiff_switch=sdiff_switch_input
+t_switch=t_switch_input
+ts_switch=ts_switch_input
+integral_switch=integral_switch_input
+f_switch=f_switch_input
+interp_switch=interp_switch_input
 big = 2
+call system( 'rm output' )
+call system( 'rm fdot' )
+call system( 'rm t_angle' )
+open(unit=217,file="output",access='stream')
+open(unit=218,file="fdot",access='stream')
+open(unit=219,file="t_angle",access='stream')
 end subroutine set_switches
 
 subroutine set_when_to_adapt(radius,npoints,distance_percentagefar,distance_percentageclose)
@@ -122,9 +133,6 @@ subroutine points_to_tangent(ndim,npoints)
 implicit none
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
-if (t_switch .eq. 1) then
-call points_to_tangent1(ndim,npoints)
-endif
 if (t_switch .eq. 2) then
 call points_to_tangent2(ndim,npoints)
 endif
@@ -132,25 +140,6 @@ if (t_switch .eq. 3) then
 call points_to_tangent3(ndim,npoints)
 endif
 end subroutine points_to_tangent
-
-subroutine points_to_tangent1(ndim,npoints)
-implicit none
-integer, intent(in) :: ndim
-integer, intent(in) :: npoints
-integer :: i
-do i=1,ndim
-    phys = 0.d0
-    phys(1:npoints) = points(i,:)
-    call fftw_execute_dft_r2c(planr2c, phys, coef)
-    coef = coef*fftw_derivative
-    call fftw_execute_dft_c2r(planc2r, coef, phys)
-    t(i,:) = phys(1:npoints)/dble(npoints)
-end do
-call normc(t,npoints)
-!do concurrent (i=1:ndim)
-!    write(*,*) i,'AAA',points(i,:),'AAA',t(i,:)
-!enddo
-end subroutine points_to_tangent1
 
 subroutine points_to_tangent2(ndim,npoints)
 implicit none
@@ -168,7 +157,7 @@ do i=1,npoints
             0.5d0*(big_points(:,i+1)-big_points(:,i))/big_sdiff(i+1)
 end do
 call normc(t,npoints)
-end subroutine points_to_tangent
+end subroutine points_to_tangent2
 
 subroutine points_to_tangent3(ndim,npoints)
 implicit none
@@ -276,9 +265,6 @@ subroutine tangent_to_ts(ndim,npoints)
 implicit none
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
-if (ts_switch .eq. 1) then
-call tangent_to_ts1(ndim,npoints)
-endif
 if (ts_switch .eq. 2) then
 call tangent_to_ts2(ndim,npoints)
 endif
@@ -286,24 +272,6 @@ if (ts_switch .eq. 3) then
 call tangent_to_ts3(ndim,npoints)
 endif
 end subroutine tangent_to_ts
-
-subroutine tangent_to_ts1(ndim,npoints)
-implicit none
-integer, intent(in) :: ndim
-integer, intent(in) :: npoints
-integer :: i
-do i=1,ndim
-    phys = 0.d0
-    phys(1:npoints) = t(i,:)
-    call fftw_execute_dft_r2c(planr2c, phys, coef)
-    coef = coef*fftw_derivative
-    call fftw_execute_dft_c2r(planc2r, coef, phys)
-    ts(i,:) = phys(1:npoints)/dble(npoints)
-end do
-!do concurrent (i=1:ndim)
-!    write(*,*) i,'AAA',points(i,:),'AAA',ts(i,:)
-!enddo
-end subroutine tangent_to_ts1
 
 subroutine tangent_to_ts2(ndim,npoints)
 implicit none
@@ -323,7 +291,7 @@ end do
 !do concurrent (i=1:ndim)
 !    write(*,*) i,'AAA',points(i,:),'AAA',t(i,:)
 !enddo
-end subroutine tangent_to_ts
+end subroutine tangent_to_ts2
 
 subroutine tangent_to_ts3(ndim,npoints)
 implicit none
@@ -359,7 +327,7 @@ integer :: i
 integer :: iflag
 iflag = 0
 do i=1,npoints
-call fcn ( ndim, points(:,i), f(:,i), iflag)
+call fcn ( ndim, points(:,i), f(:,i))
 end do
 call normc(f,npoints)
 !do i=1,npoints
@@ -769,10 +737,9 @@ integer :: i
 normct(:,1:(npoints-1)) = t(:,2:npoints)
 normct(:,npoints) = t(:,1)
 do i=1,npoints
-if (f_dot_t(i) .le. 0.99d0) then
 write(217) dble(ringnum),points(:,i)
-write(218) dble(ringnum),f_dot_t(i)
-write(219) dble(ringnum),sum(t(:,i)*normct(:,i))**0.5
+!write(218) dble(ringnum),f_dot_t(i)
+!write(219) dble(ringnum),sum(t(:,i)*normct(:,i))**0.5
 enddo
 end subroutine write_output
 

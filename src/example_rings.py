@@ -67,7 +67,7 @@ def read_array(filename,datatype):
     
 # Load header for loading real file
 header = np.loadtxt('header')
-ndim = header[0]
+ndim = int(header[0])
 saved_rings = header[1]
 steps_per_save = header[2]
 dt = header[3]
@@ -79,7 +79,7 @@ dims = [1,2,4]
 full_dims = [0]
 full_dims.extend(dims)
 #myrows = np.where( (rings2[:,0] <= 17) and (rings2[:,0] >= 16))
-#rings = rings2[(rings2[:,0] >= 1) & (rings2[:,0] <= 10000)][:,full_dims]
+#rings = rings2[(rings2[:,0] >= 1) & (rings2[:,0] <= 130)]
 rings = rings2
 
 # Function to get start points of each ring

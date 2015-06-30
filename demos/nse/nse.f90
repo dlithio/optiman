@@ -62,12 +62,6 @@ deallocate(forcing)
 call auto_state_to_force(U,F,PAR)
 my_status = .TRUE.
 call set_status(my_status)
-call system( 'rm output' )
-call system( 'rm fdot' )
-call system( 'rm t_angle' )
-open(unit=217,file="output",access='stream')
-open(unit=218,file="fdot",access='stream')
-open(unit=219,file="t_angle",access='stream')
 
 end subroutine setup
 
