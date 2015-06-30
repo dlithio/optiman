@@ -9,11 +9,14 @@ integer, private :: t_switch
 integer, private :: ts_switch
 integer, private :: integral_switch
 integer, private :: f_switch
+integer, private :: interp_switch
 integer :: big
 double precision, allocatable, private :: points(:,:)
 double precision, allocatable, private :: big_points(:,:)
 double precision, allocatable, private :: t(:,:)
 double precision, allocatable, private :: ts(:,:)
+double precision, allocatable, private :: normct(:,:)
+double precision, allocatable, private :: normcts(:,:)
 double precision, allocatable, private :: big_t(:,:)
 double precision, allocatable, private :: f(:,:)
 double precision, allocatable, private :: fideal(:,:)
@@ -41,19 +44,21 @@ complex(kind=8), allocatable, private :: fftw_integral(:)
 logical, private :: first_run = .TRUE.
 contains
 
-subroutine set_switches(sdiff_switch_input,t_switch_input,ts_switch_input,integral_switch_input,f_switch_input)
+subroutine set_switches(sdiff_switch_input,t_switch_input,ts_switch_input,integral_switch_input,f_switch_input,interp_switch_input)
 implicit none
 integer, intent(in) :: sdiff_switch_input
 integer, intent(in) :: t_switch_input
 integer, intent(in) :: ts_switch_input
 integer, intent(in) :: integral_switch_input
 integer, intent(in) :: f_switch_input
+integer, intent(in) :: interp_switch_input
 sdiff_switch = sdiff_switch_input
 t_switch = t_switch_input
 ts_switch = ts_switch_input
 integral_switch = integral_switch_input
 f_switch = f_switch_input
-big = 1
+interp_switch = interp_switch_input
+big = 2
 end subroutine set_switches
 
 subroutine set_when_to_adapt(radius,npoints,distance_percentagefar,distance_percentageclose)
@@ -79,6 +84,8 @@ endif
 allocate(big_points(ndim,(1-big):(npoints+big)))
 allocate(t(ndim,npoints))
 allocate(ts(ndim,npoints))
+allocate(normct(ndim,npoints))
+allocate(normcts(ndim,npoints))
 allocate(big_t(ndim,(1-big):(npoints+big)))
 allocate(f(ndim,npoints))
 allocate(fideal(ndim,npoints))
@@ -152,6 +159,9 @@ endif
 if (t_switch .eq. 2) then
 call points_to_tangent2(ndim,npoints)
 endif
+if (t_switch .eq. 3) then
+call points_to_tangent3(ndim,npoints)
+endif
 end subroutine points_to_tangent
 
 subroutine points_to_tangent1(ndim,npoints)
@@ -194,6 +204,108 @@ call normc(t,npoints)
 !enddo
 end subroutine points_to_tangent2
 
+subroutine points_to_tangent3(ndim,npoints)
+implicit none
+integer, intent(in) :: ndim
+integer, intent(in) :: npoints
+double precision :: cw(2,2*big+1)
+integer :: i,ii
+big_points(:,1:npoints) = points
+big_points(:,(1-big):0) = points(:,(npoints-big+1):npoints)
+big_points(:,(npoints+1):(npoints+big)) = points(:,1:(1+big-1))
+big_sdiff(1:npoints) = sdiff
+big_sdiff((1-big):0) = sdiff((npoints-big+1):npoints)
+big_sdiff((npoints+1):(npoints+big)) = sdiff(1:(1+big-1))
+call find_s(npoints+2*big,big_sdiff,big_s)
+t = 0.d0
+do i=1,npoints
+    call weights(big_s(i),big_s((i-big):(i+big)),1,cw)
+    do ii=-big,big
+        t(:,i) = t(:,i) + big_points(:,i+ii)*cw(2,ii+big+1)
+    enddo
+end do
+call normc(t,npoints)
+!do concurrent (i=1:ndim)
+!    write(*,*) i,'AAA',points(i,:),'AAA',t(i,:)
+!enddo
+end subroutine points_to_tangent3
+
+subroutine weights(z,x,m,c)
+! Calculates FD weights. The parameters are:
+!  z   location where approximations are to be accurate,
+!  x   vector with x-coordinates for grid points,
+!  m   highest derivative that we want to find weights for
+!  c   array size m+1,lentgh(x) containing (as output) in 
+!      successive rows the weights for derivatives 0,1,...,m.
+implicit none
+double precision, intent(in) :: z
+integer, intent(in) :: m
+double precision, intent(in) :: x(2*big+1) 
+double precision, intent(inout) :: c(m+1,2*big+1)
+double precision :: c1,c2,c3,c4,c5
+integer :: i,n,mn,j,k
+n=2.d0*big+1
+c = 0.d0
+c1=1.d0
+c4=x(1)-z
+c(1,1)=1.d0
+do i=2,n
+   mn=min(i,m+1)
+   c2=1.d0
+   c5=c4
+   c4=x(i)-z
+   do j=1,(i-1)
+      c3=x(i)-x(j)
+      c2=c2*c3
+      if (j .eq. (i-1)) then
+         c(2:mn,i)=c1*((/(k, k=1,mn-1, 1)/)*c(1:mn-1,i-1)-c5*c(2:mn,i-1))/c2
+         c(1,i)=-c1*c5*c(1,i-1)/c2
+      end if
+      c(2:mn,j)=(c4*c(2:mn,j)-(/(k, k=1,mn-1, 1)/)*c(1:mn-1,j))/c3
+      c(1,j)=c4*c(1,j)/c3
+    end do
+    c1=c2
+end do
+end subroutine
+
+subroutine weights2(z,x,m,c)
+! Calculates FD weights. The parameters are:
+!  z   location where approximations are to be accurate,
+!  x   vector with x-coordinates for grid points,
+!  m   highest derivative that we want to find weights for
+!  c   array size m+1,lentgh(x) containing (as output) in 
+!      successive rows the weights for derivatives 0,1,...,m.
+implicit none
+double precision, intent(in) :: z
+integer, intent(in) :: m
+double precision, intent(in) :: x(2*big) 
+double precision, intent(inout) :: c(m+1,2*big)
+double precision :: c1,c2,c3,c4,c5
+integer :: i,n,mn,j,k
+n=2.d0*big
+c = 0.d0
+c1=1.d0
+c4=x(1)-z
+c(1,1)=1.d0
+do i=2,n
+   mn=min(i,m+1)
+   c2=1.d0
+   c5=c4
+   c4=x(i)-z
+   do j=1,(i-1)
+      c3=x(i)-x(j)
+      c2=c2*c3
+      if (j .eq. (i-1)) then
+         c(2:mn,i)=c1*((/(k, k=1,mn-1, 1)/)*c(1:mn-1,i-1)-c5*c(2:mn,i-1))/c2
+         c(1,i)=-c1*c5*c(1,i-1)/c2
+      end if
+      c(2:mn,j)=(c4*c(2:mn,j)-(/(k, k=1,mn-1, 1)/)*c(1:mn-1,j))/c3
+      c(1,j)=c4*c(1,j)/c3
+    end do
+    c1=c2
+end do
+end subroutine
+
 subroutine tangent_to_ts(ndim,npoints)
 implicit none
 integer, intent(in) :: ndim
@@ -203,6 +315,9 @@ call tangent_to_ts1(ndim,npoints)
 endif
 if (ts_switch .eq. 2) then
 call tangent_to_ts2(ndim,npoints)
+endif
+if (ts_switch .eq. 3) then
+call tangent_to_ts3(ndim,npoints)
 endif
 end subroutine tangent_to_ts
 
@@ -243,6 +358,31 @@ end do
 !    write(*,*) i,'AAA',points(i,:),'AAA',t(i,:)
 !enddo
 end subroutine tangent_to_ts2
+
+subroutine tangent_to_ts3(ndim,npoints)
+implicit none
+integer, intent(in) :: ndim
+integer, intent(in) :: npoints
+double precision :: cw(2,2*big+1)
+integer :: i,ii
+big_t(:,1:npoints) = t
+big_t(:,(1-big):0) = t(:,(npoints-big+1):npoints)
+big_t(:,(npoints+1):(npoints+big)) = t(:,1:(1+big-1))
+big_sdiff(1:npoints) = sdiff
+big_sdiff((1-big):0) = sdiff((npoints-big+1):npoints)
+big_sdiff((npoints+1):(npoints+big)) = sdiff(1:(1+big-1))
+call find_s(npoints+2*big,big_sdiff,big_s)
+ts = 0.d0
+do i=1,npoints
+    call weights(big_s(i),big_s((i-big):(i+big)),1,cw)
+    do ii=-big,big
+        ts(:,i) = ts(:,i) + big_t(:,i+ii)*cw(2,ii+big+1)
+    enddo
+end do
+!do concurrent (i=1:ndim)
+!    write(*,*) i,'AAA',points(i,:),'AAA',t(i,:)
+!enddo
+end subroutine tangent_to_ts3
 
 subroutine points_to_f(ndim,npoints)
 use user_functions
@@ -374,6 +514,13 @@ if (any(dist_diff .gt. max_dist)) then
     allocate(position_vec_new(new_npoints))
     new_point = 1
     old_point = 1
+    big_points(:,1:npointsold) = points
+    big_points(:,(1-big):0) = points(:,(npointsold-big+1):npointsold)
+    big_points(:,(npointsold+1):(npointsold+big)) = points(:,1:(1+big-1))
+    big_sdiff(1:npointsold) = sdiff
+    big_sdiff((1-big):0) = sdiff((npointsold-big+1):npointsold)
+    big_sdiff((npointsold+1):(npointsold+big)) = sdiff(1:(1+big-1))
+    call find_s(npointsold+2*big,big_sdiff,big_s)
     do old_point=1,npointsold
         if (dist_diff(old_point) .gt. max_dist) then
             call interpolate(points,points_new,old_point,new_point,npointsold)
@@ -422,7 +569,7 @@ if (any(dist_diff .lt. min_dist) .and. (.not. made_change)) then
 endif
 end subroutine fix_old_ring
 
-subroutine interpolate(oldarray,newarray,old_point,new_point,npointsold)
+subroutine interpolate1(oldarray,newarray,old_point,new_point,npointsold)
 implicit none
 double precision, intent(inout) :: oldarray(:,:)
 double precision, intent(inout) :: newarray(:,:)
@@ -434,6 +581,38 @@ newarray(:,new_point) = (oldarray(:,1) + oldarray(:,npointsold))/2.d0
 endif
 if (old_point .ne. 1) then
 newarray(:,new_point) = (oldarray(:,old_point) + oldarray(:,old_point-1))/2.d0
+endif
+end subroutine
+
+subroutine interpolate2(newarray,old_point,new_point)
+implicit none
+double precision, intent(inout) :: newarray(:,:)
+integer, intent(in) :: old_point
+integer, intent(in) :: new_point
+!double precision :: where_to_interp
+double precision :: cw2(1,2*big)
+integer :: ii
+cw2 = 0.d0
+!where_to_interp = (big_s(old_point) + big_s(old_point - 1))/2.d0
+call weights2((big_s(old_point) + big_s(old_point - 1))/2.d0,big_s((old_point-big):(old_point+big-1)),0,cw2)
+newarray(:,new_point) = 0.d0
+do ii=-big,(big-1)
+    newarray(:,new_point) = newarray(:,new_point) + big_points(:,old_point+ii)*cw2(1,ii+big+1)
+enddo
+end subroutine
+
+subroutine interpolate(oldarray,newarray,old_point,new_point,npointsold)
+implicit none
+double precision, intent(inout) :: oldarray(:,:)
+double precision, intent(inout) :: newarray(:,:)
+integer, intent(in) :: old_point
+integer, intent(in) :: new_point
+integer, intent(inout) :: npointsold
+if (interp_switch .eq. 1) then
+call interpolate1(oldarray,newarray,old_point,new_point,npointsold)
+endif
+if (interp_switch .eq. 2) then
+call interpolate2(newarray,old_point,new_point)
 endif
 end subroutine
 
@@ -613,28 +792,41 @@ call dot(t,f,f_dot_t,npoints)
 !!    write(*,*) '**',i,fideal(:,i),i,'**'
 !enddo
 ! My ad-hoc changes2
-f_change_scalart = 0.d0
-do i=1,npoints
-    if (dabs(f_dot_t(i)) .le. 0.99d0) then
-        fideal(:,i) = f(:,i) + (phi(i) - f_dot_t(i)) * t(:,i)
-    endif
-    if ((dabs(f_dot_t(i)) .gt. 0.99d0)) then
-        fideal(:,i) = 0.d0
-    endif
-enddo
+!f_change_scalart = 0.d0
+!do i=1,npoints
+!    if (dabs(f_dot_t(i)) .le. 0.9d0) then
+!        fideal(:,i) = f(:,i) + (phi(i) - f_dot_t(i)) * t(:,i)
+!    endif
+!    if ((dabs(f_dot_t(i)) .gt. 0.9d0)) then
+!        fideal(:,i) = 0.d0
+!    endif
+!enddo
 !f_change_scalar(1) = (sum(f_change_scalart(1:2))+f_change_scalart(npoints))/3.d0
 !f_change_scalar(npoints) = (sum(f_change_scalart(npoints-1:npoints))+f_change_scalart(1))/3.d0
 !do i=2,npoints-1
 !    f_change_scalar(i) = sum(f_change_scalart(i-1:i+1))/3.d0
 !enddo
-f_change_scalar = f_change_scalart
-! And now make the changes
-do i=1,npoints
-    fideal(:,i) = f(:,i) + f_change_scalar(i) * t(:,i)
-!    write(*,*) '**',i,fideal(:,i),i,'**'
-enddo
+!f_change_scalar = f_change_scalart
+!! And now make the changes
+!do i=1,npoints
+!    fideal(:,i) = f(:,i) + f_change_scalar(i) * t(:,i)
+!!    write(*,*) '**',i,fideal(:,i),i,'**'
+!enddo
 ! Another important change (?) with the adhoc changes.
 ! call normc(fideal,npoints)
+normct(:,1:(npoints-1)) = t(:,2:npoints)
+normct(:,npoints) = t(:,1)
+do i=1,npoints
+    !if ((sum(t(:,i)*normct(:,i))**0.5 .gt. 0.999d0) .and. (dabs(f_dot_t(i)) .le. 0.99d0)) then
+        fideal(:,i) = f(:,i) + (phi(i) - f_dot_t(i)) * t(:,i)
+    !endif
+    !if (sum(t(:,i)*normct(:,i))**0.5 .le. 0.999d0) then
+    !    fideal(:,i) = f(:,i)
+    !endif
+    !if ((dabs(f_dot_t(i)) .gt. 0.99d0)) then
+    !    fideal(:,i) = 0.d0
+    !endif
+enddo
 end subroutine find_fideal
 
 subroutine timestep(dt)
@@ -648,11 +840,12 @@ implicit none
 integer, intent(in) :: ringnum
 integer, intent(in) :: npoints
 integer :: i
+normct(:,1:(npoints-1)) = t(:,2:npoints)
+normct(:,npoints) = t(:,1)
 do i=1,npoints
 write(217) dble(ringnum),points(:,i)
 write(218) dble(ringnum),f_dot_t(i)
-write(219) dble(ringnum),f_change_scalart(i)
-write(220) dble(ringnum),f_change_scalar(i)
+write(219) dble(ringnum),sum(t(:,i)*normct(:,i))**0.5
 enddo
 end subroutine write_output
 
@@ -667,6 +860,8 @@ deallocate(big_points)
 deallocate(t)
 deallocate(big_t)
 deallocate(ts)
+deallocate(normct)
+deallocate(normcts)
 deallocate(f)
 deallocate(fideal)
 deallocate(sdiff)
