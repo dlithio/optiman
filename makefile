@@ -86,3 +86,5 @@ endif
 	
 clean:
 	rm -f *.exe *.mod *.o *.x
+	cd obj && rm -f *.exe *.mod *.o *.x
+
