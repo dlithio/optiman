@@ -167,12 +167,12 @@ all_triangles = np.concatenate((bottom_triangles,top_triangles), axis=0)
 #mesh = tvtk.PolyData(points=rings[:,1:], polys=all_triangles)
 mesh = tvtk.PolyData(points=rings[:,dims], polys=all_triangles)
 #mesh = tvtk.PolyData(points=rings[:,1:], polys=bottom_triangles[:2,:])
-#mesh.point_data.scalars = rings[:,0]
-#mesh.point_data.scalars.name = 'time'
-fdot = read_array('fdot',np.float64)
-fdot.shape = (fdot.shape[0]/2,2)
-mesh.point_data.scalars = fdot[:,1]
-mesh.point_data.scalars.name = 'f_dot_t'
+mesh.point_data.scalars = rings[:,0]
+mesh.point_data.scalars.name = 'time'
+#fdot = read_array('fdot',np.float64)
+#fdot.shape = (fdot.shape[0]/2,2)
+#mesh.point_data.scalars = fdot[:,1]
+#mesh.point_data.scalars.name = 'f_dot_t'
 #t_angle = read_array('t_angle',np.float64)
 #t_angle.shape = (t_angle.shape[0]/2,2)
 #mesh.point_data.scalars = t_angle[:,1]

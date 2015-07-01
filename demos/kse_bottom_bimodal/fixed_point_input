@@ -1,0 +1,3 @@
+&fixed_point_input
+ tolerance = 1.d-12,
+ max_iterations = 1000/

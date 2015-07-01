@@ -4,11 +4,8 @@ double precision, private :: pi=4.d0*datan(1.d0)
 double precision, private :: max_dist
 double precision, private :: min_dist
 integer, private :: sdiff_switch
-integer, private :: t_switch
-integer, private :: ts_switch
-integer, private :: integral_switch
 integer, private :: f_switch
-integer, private :: interp_switch
+integer, private :: order_of_accuracy
 integer :: big
 double precision, allocatable, private :: points(:,:)
 double precision, allocatable, private :: big_points(:,:)
@@ -37,21 +34,15 @@ double precision, allocatable, private :: f_change_scalart(:)
 logical, private :: first_run = .TRUE.
 contains
 
-subroutine set_switches(sdiff_switch_input,t_switch_input,ts_switch_input,integral_switch_input,f_switch_input,interp_switch_input)
+subroutine set_switches(sdiff_switch_input,f_switch_input,order_of_accuracy_input)
 implicit none
 integer, intent(in) :: sdiff_switch_input
-integer, intent(in) :: t_switch_input
-integer, intent(in) :: ts_switch_input
-integer, intent(in) :: integral_switch_input
 integer, intent(in) :: f_switch_input
-integer, intent(in) :: interp_switch_input
+integer, intent(in) :: order_of_accuracy_input
 sdiff_switch=sdiff_switch_input
-t_switch=t_switch_input
-ts_switch=ts_switch_input
-integral_switch=integral_switch_input
 f_switch=f_switch_input
-interp_switch=interp_switch_input
-big = 2
+order_of_accuracy=order_of_accuracy_input
+big = order_of_accuracy
 call system( 'rm output' )
 call system( 'rm fdot' )
 call system( 'rm t_angle' )
@@ -133,10 +124,10 @@ subroutine points_to_tangent(ndim,npoints)
 implicit none
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
-if (t_switch .eq. 2) then
+if (order_of_accuracy .eq. 1) then
 call points_to_tangent2(ndim,npoints)
 endif
-if (t_switch .eq. 3) then
+if (order_of_accuracy .gt. 1) then
 call points_to_tangent3(ndim,npoints)
 endif
 end subroutine points_to_tangent
@@ -265,10 +256,10 @@ subroutine tangent_to_ts(ndim,npoints)
 implicit none
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
-if (ts_switch .eq. 2) then
+if (order_of_accuracy .eq. 1) then
 call tangent_to_ts2(ndim,npoints)
 endif
-if (ts_switch .eq. 3) then
+if (order_of_accuracy .gt. 1) then
 call tangent_to_ts3(ndim,npoints)
 endif
 end subroutine tangent_to_ts
@@ -528,10 +519,10 @@ double precision, intent(inout) :: newarray(:,:)
 integer, intent(in) :: old_point
 integer, intent(in) :: new_point
 integer, intent(inout) :: npointsold
-if (interp_switch .eq. 1) then
+if (order_of_accuracy .eq. 1) then
 call interpolate1(oldarray,newarray,old_point,new_point,npointsold)
 endif
-if (interp_switch .eq. 2) then
+if (order_of_accuracy .gt. 1) then
 call interpolate2(newarray,old_point,new_point)
 endif
 end subroutine

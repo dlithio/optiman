@@ -5,11 +5,9 @@ implicit none
 integer :: ndim
 integer :: npoints, npoints_start
 integer :: sdiff_switch
-integer :: t_switch
 integer :: f_switch
-integer :: ts_switch
 integer :: integral_switch
-integer :: interp_switch
+integer :: order_of_accuracy
 integer :: i
 integer :: fix_trys
 double precision, allocatable :: eigvec1(:)
@@ -25,17 +23,14 @@ double precision :: distance_percentageclose
 integer :: steps_per_save,stepnum
 integer :: saved_rings,ringnum
 logical :: something_wrong
-namelist /optiman_input/ npoints_start,radius,dt,steps_per_save,saved_rings,distance_percentagefar,distance_percentageclose,f_switch
+namelist /optiman_input/ npoints_start,radius,dt,steps_per_save,saved_rings,distance_percentagefar,distance_percentageclose,f_switch,order_of_accuracy
 
 open(100,file="optiman_input",delim='APOSTROPHE')
 read(100,nml=optiman_input)
 close(100)
 
 sdiff_switch = 2
-t_switch = 2
-ts_switch = 2
 integral_switch = 2
-interp_switch = 1
 
 open(100,file="par")
 do i=1,36
@@ -46,7 +41,7 @@ ndim = par(36)
 call setup(par)
 
 npoints = npoints_start
-call set_switches(sdiff_switch,t_switch,ts_switch,integral_switch,f_switch,interp_switch)
+call set_switches(sdiff_switch,f_switch,order_of_accuracy)
 call allocate_arrays(ndim,npoints)
 
 allocate(eigvec1(ndim))
