@@ -23,7 +23,7 @@ NSEOBJS = $(patsubst %,$(ODIR)/%,$(_nseobbjs))
 
 # As long as you've installed ifort, nothing here should need to be
 # changed.
-FC = ifort
+FC = gfortran
 ifeq (ifort,$(FC))
 fast_flags=-module $(ODIR) -O3 -xhost -ipo -fp-model strict -i4
 debug_flags=-module $(ODIR) -i4 -O0 -traceback -g -check all -check bounds -debug all -fp-stack-check -fpe0 -ftrapuv -warn all
@@ -32,7 +32,7 @@ optiman_libs=
 endif
 ifeq (gfortran,$(FC))
 fast_flags=
-debug_flags=
+debug_flags=-ffpe-trap=invalid,zero,overflow -fimplicit-none -ffree-form -ffree-line-length-none -fbounds-check -O0 -g -Waliasing -Wall -Wampersand -Warray-bounds -Wc-binding-type -Wcharacter-truncation -Wconversion -Wfunction-elimination -Wimplicit-interface -Wimplicit-procedure -Wintrinsic-shadow -Wintrinsics-std -Wline-truncation -Wno-align-commons -Wno-tabs -Wreal-q-constant -Wsurprising -Wunderflow -Wunused-parameter -Wrealloc-lhs -Wrealloc-lhs-all -Wtarget-lifetime -fbacktrace
 fixed_point_libs=-lm -lblas -llapack
 optiman_libs=-lm
 endif
