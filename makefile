@@ -61,24 +61,25 @@ nse: clean utility_mod.o projector_mod_phys.o nse_mod_physf.o auto_mod_physf.o s
 nse_fixed_point.x: clean utility_mod.o projector_mod_phys.o nse_mod_physf.o auto_mod_physf.o status_mod.o nse.o fixed_point.o mrgrnk.o
 	$(FC) $(FFLAGS) -o nse_fixed_point.x *.o -L$(lapack_lib_dir) -L$(blas_lib_dir) $(fixed_point_libs)
 
+timestamp=$(shell date +"%y%m%d%H%M%S")
 store_results:
 ifdef folder
-	mkdir results/$(folder)
-	mv eig* results/$(folder)/
-	mv *.x results/$(folder)/
-	mv header results/$(folder)/
-	mv fixed_point results/$(folder)/
-	mv initial_guess results/$(folder)/
-	mv par results/$(folder)/
-	mv *.f90 results/$(folder)/
-	mv output results/$(folder)/
-	mv *_input results/$(folder)/
-	mv fdot results/$(folder)/
-	mv t_angle results/$(folder)/
+	mkdir results/$(folder)_$(timestamp)
+	mv eig* results/$(folder)_$(timestamp)/
+	mv *.x results/$(folder)_$(timestamp)/
+	mv header results/$(folder)_$(timestamp)/
+	mv fixed_point results/$(folder)_$(timestamp)/
+	mv initial_guess results/$(folder)_$(timestamp)/
+	mv par results/$(folder)_$(timestamp)/
+	mv *.f90 results/$(folder)_$(timestamp)/
+	mv output results/$(folder)_$(timestamp)/
+	mv *_input results/$(folder)_$(timestamp)/
+	mv fdot results/$(folder)_$(timestamp)/
+	mv t_angle results/$(folder)_$(timestamp)/
 	touch version_info
 	echo "These results come from software version" >> version_info
 	git rev-parse HEAD >> version_info
-	mv version_info results/$(folder)/
+	mv version_info results/$(folder)_$(timestamp)/
 else
 	@echo "you need to specify a folder to put the files in using doing"
 	@echo "make store_results folder=folder_name_to_stash_stuff_in"
