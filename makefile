@@ -76,6 +76,7 @@ ifdef folder
 	mv *_input results/$(folder)_$(timestamp)/
 	mv fdot results/$(folder)_$(timestamp)/
 	mv t_angle results/$(folder)_$(timestamp)/
+	rm -f version_info
 	touch version_info
 	echo "These results come from software version" >> version_info
 	git rev-parse HEAD >> version_info
