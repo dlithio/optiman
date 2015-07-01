@@ -5,7 +5,7 @@ use nse_mod_physf
 use utility_mod
 use status_mod
 implicit none
-integer, parameter, private :: NDIM=112
+integer, parameter, private :: NDIM=44
 double precision, private :: modpar(36)
 !double precision, allocatable, private :: uu(:)
 !double precision, allocatable, private :: b(:)
@@ -98,7 +98,7 @@ double precision, intent(inout) :: a( 1: , 1: )
 double precision :: original_force(n),forward_state(n),forward_force(n)
 integer :: i
 double precision :: h
-h = 1.d-4
+h = 1.d-6
 a = 0.d0
 call fcn ( n, x, original_force)
 do i=1,n

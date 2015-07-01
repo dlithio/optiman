@@ -1,9 +1,10 @@
 &optiman_input
- npoints_start = 64,
+ npoints_start = 32,
  radius = 1.d-1,
  dt = 1.d-3,
  steps_per_save = 50,
  saved_rings = 300,
  distance_percentagefar = 3.d0,
  distance_percentageclose = 0.1d0,
- f_switch = 1/
+ f_switch = 3,
+ order_of_accuracy=1/

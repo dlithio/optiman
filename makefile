@@ -114,6 +114,6 @@ else
 endif
 	
 clean:
-	rm -f *.exe *.mod *.o *.x
-	cd obj && rm -f *.exe *.mod *.o *.x
+	rm -f *.x
+	cd obj && rm -f *.mod *.o
 

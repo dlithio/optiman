@@ -1,11 +1,39 @@
-# Ignore everything in this directory
-*
-# Except this file
-!.gitignore
-!demos/
-!obj/
-!results/
-!src/
-!LICENSE
-!README.md
-!makefile
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.x
+*.out
+*.app
+
+#other
+output
+fdot
+t_angle
+header
+eigval1
+eigval2
+eigvec1
+eigvec2
+fixed_point
