@@ -10,5 +10,6 @@ sudo apt-get install gfortran python python-numpy python-scipy mayavi2
 ```
 
 ### Mac or Windows
-*Install gfortran from https://gcc.gnu.org/wiki/GFortranBinaries. 
-*Install Enthought Canopy Express from https://store.enthought.com/downloads/. 
+
+* Install gfortran from https://gcc.gnu.org/wiki/GFortranBinaries. 
+* Install Enthought Canopy Express from https://store.enthought.com/downloads/. 
