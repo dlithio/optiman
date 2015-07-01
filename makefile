@@ -121,7 +121,26 @@ else
 	@echo "you need to specify a folder to put the files in using doing"
 	@echo "make store_results folder=folder_name_to_stash_stuff_in"
 endif
-	
+
+clean_results:
+	rm -f eig* 
+	rm -f *.x
+	rm -f header
+	rm -f fixed_point
+	rm -f initial_guess 
+	rm -f par 
+	rm -f *.f90
+	rm -f output 
+	rm -f *_input 
+	rm -f fdot 
+	rm -f t_angle 
+	rm -f old_par
+	rm -f auto_ndim_key
+	rm -f M_key 
+	rm -f N_key 
+	rm -f kx_projections 
+	rm -f ky_projections 
+
 clean:
 	rm -f *.x
 	cd obj && rm -f *.mod *.o
