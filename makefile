@@ -63,22 +63,22 @@ nse_fixed_point.x: clean utility_mod.o projector_mod_phys.o nse_mod_physf.o auto
 
 store_results:
 ifdef folder
-	mkdir $(folder)
-	mv eig* $(folder)/
-	mv *.x $(folder)/
-	mv header $(folder)/
-	mv fixed_point $(folder)/
-	mv initial_guess $(folder)/
-	mv par $(folder)/
-	mv *.f90 $(folder)/
-	mv output $(folder)/
-	mv *_input $(folder)/
-	mv fdot $(folder)/
-	mv t_angle $(folder)/
+	mkdir results/$(folder)
+	mv eig* results/$(folder)/
+	mv *.x results/$(folder)/
+	mv header results/$(folder)/
+	mv fixed_point results/$(folder)/
+	mv initial_guess results/$(folder)/
+	mv par results/$(folder)/
+	mv *.f90 results/$(folder)/
+	mv output results/$(folder)/
+	mv *_input results/$(folder)/
+	mv fdot results/$(folder)/
+	mv t_angle results/$(folder)/
 	touch version_info
 	echo "These results come from software version" >> version_info
 	git rev-parse HEAD >> version_info
-	mv version_info $(folder)/
+	mv version_info results/$(folder)/
 else
 	@echo "you need to specify a folder to put the files in using doing"
 	@echo "make store_results folder=folder_name_to_stash_stuff_in"
