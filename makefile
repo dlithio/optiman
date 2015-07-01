@@ -5,8 +5,6 @@
 #
 # find / -type f -name "*lapack*.a" 2>/dev/null
 lapack_lib_dir=/usr/lib
-# find / -type f -name "*blas*.a" 2>/dev/null
-blas_lib_dir=/usr/lib
 
 ODIR = obj
 SDIR = src
