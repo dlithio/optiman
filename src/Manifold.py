@@ -1,196 +1,136 @@
 import numpy as np
-import pdb
 from sklearn.neighbors import NearestNeighbors
-#pdb.set_trace()
+
+import matplotlib as mpl
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+from tvtk.api import tvtk
+from mayavi.scripts import mayavi2
+
 
 class Manifold(object):
     """Implments the timestepping
     """
     
-    def __init__(self,max_points,number_of_bands):
-        self.max_points = max_points
-        self.points = np.zeros((max_points,3))
-        self.colors = np.zeros((max_points))
-        self.triangles = np.zeros((max_points,3),dtype=np.int32)
-        self.closest_points = np.zeros((max_points))
-        self.number_of_bands = number_of_bands
-        self.max_ring = number_of_bands +1
-        self.ring_starts = np.zeros((self.max_ring),dtype=np.int32)
-        self.current_row = 0
-        self.current_ring = 0
-        self.ring_starts[0] = 0
-        self.current_triangle = 0
+    def __init__(self,folder_name):
+        # Load header for loading real file
+        header = np.loadtxt(folder_name + '/header')
+        ndim = int(header[0])
+        # Load an actual rings file
+        rings = self.read_array(folder_name +'/output',np.float64)
+        numrows = rings.shape[0]/(ndim+1)
+        rings.shape = (numrows,ndim+1)
+        # Function to get start points of each ring
 
-    def clear_visual_data(self):
-        max_points = self.max_points
-        self.colors = np.zeros((max_points))
-        self.triangles = np.zeros((max_points,3),dtype=np.int32)
-        self.current_triangle = 0
-    
-    def add_ring(self,band):
-        n_rows_in_band = band.shape[0]
-        if self.current_ring > 0:
-            last_ring_start = self.ring_starts[self.current_ring - 1]
-            last_band = self.points[last_ring_start:self.current_row,:]
-            nbrs = NearestNeighbors(n_neighbors=1).fit(band)
-            distances, indices = nbrs.kneighbors(last_band)
-            pdb.set_trace()
-            self.closest_points[last_ring_start:self.current_row] = indices[:,0] + self.current_row
-        self.points[(self.current_row):(self.current_row + n_rows_in_band),:] = band.copy()
-        self.current_row += n_rows_in_band
-        self.current_ring += 1
-        self.ring_starts[self.current_ring] = self.current_row
-    
-    def set_colors(self,delete_bands=0):
+        start_points = self.get_start_points(rings)
+        end_points = []
+        for point in start_points[1:]:
+            end_points.append(point - 1)
+        end_points.append(rings.shape[0] - 1)
+        # Make an array that is for the bottom triangles and is (numpoints-points_in_top_ring x 3)
+        # Fill in first two columns based on start points of each ring
+        bottom_triangles = np.zeros((start_points[-1],3),dtype=np.int)
+        bottom_triangles[:,0] = np.arange(0,start_points[-1])
+        bottom_triangles[:,1] = np.arange(1,start_points[-1]+1)
+        bottom_triangles[end_points[:-1],1] = start_points[:-1]
+        # Make an array for the top triangles that is (numpoints-points_in_bottom_ring x 3)
+        # Fill in first two columns based on start points of each ring
+        top_triangles = np.zeros((rings.shape[0] - start_points[1],3),dtype=np.int)
+        top_triangles[:,0] = np.arange(start_points[1],rings.shape[0])
+        top_triangles[:,1] = np.arange(start_points[1]+1,rings.shape[0]+1)
+        for start_point,end_point in zip(start_points[1:],end_points[1:]):
+            top_triangles[end_point-start_points[1],1] = start_point
+
+        # Use the function to build the bottom triangles
+        for ring_num in range(len(start_points) - 1):
+            bottom_ring_start = start_points[ring_num]
+            bottom_ring_end = end_points[ring_num] + 1
+            top_ring_start = start_points[ring_num + 1]
+            top_ring_end = end_points[ring_num + 1] + 1
+            bottom_ring = rings[bottom_ring_start:bottom_ring_end,1:]
+            top_ring = rings[top_ring_start:top_ring_end,1:]
+            bottom_triangles[bottom_ring_start:bottom_ring_end,2] = \
+                         self.get_closest_points(bottom_ring,top_ring,top_ring_start)
+                         
+        self.get_top_to_bottom(bottom_triangles,top_triangles,start_points,end_points)
+
+        # Now visualize it
+        dims = [1,2,3]
+        all_triangles = np.concatenate((bottom_triangles,top_triangles), axis=0)
+        mesh = tvtk.PolyData(points=rings[:,dims], polys=all_triangles)
+        mesh.point_data.scalars = rings[:,0]
+        mesh.point_data.scalars.name = 'time'
+        #fdot = read_array('fdot',np.float64)
+        #fdot.shape = (fdot.shape[0]/2,2)
+        #mesh.point_data.scalars = fdot[:,1]
+        #mesh.point_data.scalars.name = 'f_dot_t'
+        #t_angle = read_array('t_angle',np.float64)
+        #t_angle.shape = (t_angle.shape[0]/2,2)
+        #mesh.point_data.scalars = t_angle[:,1]
+        #mesh.point_data.scalars.name = 't_angle'
+        self.view(mesh)
+        
+    # Now the test of the new visualization software
+    def read_array(self,filename,datatype):
+        try:
+            result = np.fromfile(filename,dtype=datatype)
+        except IOError:
+            print(filename + " was not yet available")
+        return result
+        
+    def get_start_points(self,rings):
+        start_points = []
         ring_num = 0
-        while ring_num < self.current_ring - delete_bands:
-            begin = self.ring_starts[ring_num]
-            end = self.ring_starts[ring_num+1]
-            self.colors[begin:end].fill(ring_num)
-            ring_num += 1
+        for row_num,row_ring_num in enumerate(rings[:,0]):
+            if row_ring_num != ring_num:
+                ring_num = row_ring_num
+                start_points.append(row_num)
+        return start_points
+        
+    # Next, we want a function that takes (bottom ring, top ring, closest points to bottom on the top)
+    #   and returns an array as long as the top ring array that is the point on the bottom ring that we
+    #   should connect to when the corresponding point in the top is first in the triangle
+    def get_top_to_bottom(self,bottom_triangles,top_triangles,start_points,end_points):
+        top_triangles[:,2] = -1
+        for triangle in bottom_triangles:
+            if triangle[1] > top_triangles[triangle[2] - start_points[1],2]:
+                top_triangles[triangle[2] - start_points[1],2] = triangle[1]
+        # Make corrections for the first point in a loop
+        for triangle in bottom_triangles:
+            if triangle[1] in start_points:
+                if top_triangles[triangle[2] - start_points[1],2] in end_points:
+                    top_triangles[triangle[2] - start_points[1],2] = triangle[1]
+        # Now take care of the -1's
+        for start_point,end_point in zip(start_points[1:],end_points[1:]):
+            if (top_triangles[start_point-start_points[1],2] == -1):
+                previous_point = end_point
+                while (top_triangles[previous_point-start_points[1],2] == -1):
+                    previous_point = previous_point - 1
+                top_triangles[start_point-start_points[1],2] = top_triangles[previous_point-start_points[1],2]
+            this_point = start_point
+            for this_point in range(start_point,end_point+1):
+                if top_triangles[this_point-start_points[1],2] != -1:
+                    last_bottom = top_triangles[this_point-start_points[1],2]
+                else:
+                    top_triangles[this_point-start_points[1],2] = last_bottom
+        return top_triangles
+        
+    # First, we want a function that takes (bottom ring, top ring, top ring global index)
+    #   and returns an array as long as the bottom ring array that is the closest point on the top for each bottom point
+    def get_closest_points(self,bottom_ring,top_ring,global_top_ring_start_index):
+        nbrs = NearestNeighbors(n_neighbors=1).fit(top_ring)
+        distances, indices = nbrs.kneighbors(bottom_ring)
+        return indices[:,0]  + global_top_ring_start_index
     
-    def add_triangle(self,triangle):
-        self.triangles[self.current_triangle,:] = np.array(triangle)
-        self.current_triangle += 1
+    @mayavi2.standalone
+    def view(self,mesh):
+        from mayavi.sources.vtk_data_source import VTKDataSource
+        from mayavi.modules.surface import Surface
         
-    def assign_bottom_triangles(self,delete_bands):
-        # Make the bottom triangles in a vectorized manner. These
-        # Triangles are of the form
-        # [point_i_on_bottom,
-        #   point_i+1_on_bottom,
-        #   point_closest_to_point_i_thats_on_top_ring]
-        first_point_next_ring = self.ring_starts[self.current_ring-1-delete_bands]
-        number_of_bottom_triangles = first_point_next_ring
-        start_tri = self.current_triangle
-        end_tri = self.current_triangle + number_of_bottom_triangles
-        self.triangles[start_tri:end_tri,0] = np.arange(number_of_bottom_triangles)
-        self.triangles[start_tri:end_tri,1] = np.arange(number_of_bottom_triangles) + 1
-        # Change end points to beginning points
-        self.triangles[self.ring_starts[1:self.current_ring] - 1,1] = \
-            self.ring_starts[0:self.current_ring-1]
-        self.triangles[start_tri:end_tri,2] = self.closest_points[0:first_point_next_ring]
-        self.current_triangle += number_of_bottom_triangles
-    
-    def assign_top_triangles(self,delete_bands):
-        # Make the bottom triangles in a vectorized manner. These
-        # Triangles are of the form
-        # [point_i_on_bottom,
-        #   point_i+1_on_bottom,
-        #   point_closest_to_point_i_thats_on_top_ring]
-        first_point_next_ring = self.ring_starts[self.current_ring-1-delete_bands]
-        number_of_top_triangles = first_point_next_ring
-        start_tri = self.current_triangle
-        end_tri = self.current_triangle + number_of_top_triangles
-        self.triangles[start_tri:end_tri,1] = np.arange(number_of_top_triangles) + 1
-        self.triangles[self.current_triangle + self.ring_starts[1:self.current_ring] - 1,1] = \
-            self.ring_starts[0:self.current_ring-1]
-        self.triangles[start_tri:end_tri,0] = self.closest_points[0:first_point_next_ring]
-        self.triangles[start_tri:end_tri,2] = self.closest_points[self.triangles[start_tri:end_tri,1]]
-        self.current_triangle += number_of_top_triangles
-        
-    #def assign_top_triangles(self):
-        # First, we get a list of the points that were involved in triangles
-        # that were as the point
-        # point_closest_to_point_i_thats_on_top_ring
-        # or
-        # point_i+1_on_bottom
-        # in a triangle of the type
-        # [point_i_on_bottom,
-        #   point_i+1_on_bottom,
-        #   point_closest_to_point_i_thats_on_top_ring]
-        #u, indices = np.unique(a, return_index=True)
-        # The below is typically what we will want
-        #top_points_normal_order, indices_normal_order = \
-        #    np.unique(self.triangles[0:self.current_triangle,2], 
-        #              return_index=True)
-        # Now we get a list of 
-        # point_closest_to_point_i_thats_on_top_ring
-        # that are associated with 
-        # point_i_on_bottom
-        # as teh first point in the triangle
-        #top_points_from_first_points = self.closest_points[self.ring_starts[0:self.current_ring]]
-        # Need to figure out this code
-        #top_points_reverse_order, indices_reverse_order = \
-        #    np.unique(self.triangles[0:self.current_triangle,2], 
-        #              return_index=True)
-        # Check for intersection in top_points_from_first_points, top_points_reverse_order
-        # Check for difference in first_points, if it's greater than 8, flag it
-        
-        
-        
-        
-        
-
-    def make_triangles(self,delete_bands=0):
-        # Must fix for top ring breaking periodic in the middle!!!!!
-        # looks like I should make an iterator for range(closest,next_closest)
-        # Should be checking appropraite bounds in the upper ring and working 
-        # modulo possibly. At least do some manual trick.
-        #
-        self.assign_bottom_triangles(delete_bands)
-        self.assign_top_triangles(delete_bands)
-            
-        #point = int(self.ring_starts[ring_num])
-        #while point < self.ring_starts[ring_num + 1] - 1:
-            #closest = int(self.closest_points[point])
-            #self.add_triangle([point,point+1,closest])
-            #next_closest = int(self.closest_points[point+1])
-            #while (closest == next_closest):
-                #point += 1
-                #closest = int(self.closest_points[point])
-                #next_closest = int(self.closest_points[point+1])
-                #self.add_triangle([point,point+1,closest])
-            #for this_top in range(closest,next_closest):
-                #self.add_triangle([point+1,this_top,this_top+1])
-            #point += 1
-        #pdb.set_trace()
-        ## Now we are on the last point in the ring. The next point on
-        ## this ring is also the first point.
-        #closest = int(self.closest_points[point])
-        #pointplusone = self.ring_starts[ring_num]
-        #self.add_triangle([point,pointplusone,closest])
-        #next_closest = int(self.closest_points[pointplusone])
-        #if closest != next_closest:
-            #for this_top in range(closest,self.ring_starts[ring_num + 2] - 2):
-                #self.add_triangle([pointplusone, this_top, this_top+1])
-            #self.add_triangle([pointplusone, self.ring_starts[ring_num + 2] - 1, self.ring_starts[ring_num + 1]])
-            
-            
-   
+        mayavi.new_scene()
+        src = VTKDataSource(data = mesh)
+        mayavi.add_source(src)
+        s = Surface()
+        mayavi.add_module(s)
 
 
-
-#indices                                           
-#distances     
-    #def __init__(self, bottom_points, top_points):
-        #"""Creates a blank ring object using an options object.
-        
-        #Args:
-            #options: An ring options object.
-        #"""
-        #points_all = np.vstack((bottom_points,top_points))
-        #vertex_start = range(bottom_points.shape[0])
-        #vertex_end = range(points_all.shape[0]-1,bottom_points.shape[0]-1,-1)
-        #first_cell = []
-        #first_cell.append(vertex_end[-1])
-        #first_cell.extend(vertex_start)
-        #first_cell.extend(vertex_end[:-1])
-        #tvtk.PolyData.__init__(self,points=points_all,polys=np.array([first_cell]))
-        #last_points=top_points
-        
-        
-    #def add_points(self, next_points):
-        #"""Sets the first ring as a circle
-        
-        #"""
-        #points_all = np.vstack((self.last_points,next_points))
-        #vertex_start = range(self.last_points.shape[0])
-        #vertex_end = range(points_all.shape[0]-1,self.last_points.shape[0]-1,-1)
-        #this_cell = []
-        #this_cell.extend(vertex_start)
-        #this_cell.extend(vertex_end)
-        #this_cell.append(vertex_start[0])
-        #new_obj = tvtk.PolyData(points=points_all,polys=np.array(this_cell))
-        #self.copy_cells(new_obj,[0])
-        #self.last_points = next_points.copy()
-        
