@@ -162,7 +162,7 @@ get_top_to_bottom(bottom_triangles,top_triangles,start_points,end_points)
 
 # Now visualize it
 # The TVTK dataset.
-dims = [1,2,3]
+dims = [1,2,4]
 all_triangles = np.concatenate((bottom_triangles,top_triangles), axis=0)
 #mesh = tvtk.PolyData(points=rings[:,1:], polys=all_triangles)
 mesh = tvtk.PolyData(points=rings[:,dims], polys=all_triangles)

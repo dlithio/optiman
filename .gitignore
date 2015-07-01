@@ -1,38 +1,11 @@
-# Compiled Object files
-*.slo
-*.lo
-*.o
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.x
-*.out
-*.app
-
-#other
-output*
-header
-eigval*
-eigvec*
-fixed_point
-old_par
-fdot
-t_angle
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore
+!demos/
+!obj/
+!results/
+!src/
+!LICENSE
+!README.md
+!makefile

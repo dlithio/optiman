@@ -93,7 +93,7 @@ allocate(work(lwork))
 call DGEEV( JOBVL, JOBVR, N, A, LDA, WR, WI, VL, LDVL, VR, LDVR, WORK, LWORK, INFO )
 
 write(*,*) "Here we list out all the eigenvalues of the jacobian at that fixed point"
-write(*,*) "that have real parts. If you do not see at least 2 positive eigenvalues,"
+write(*,*) "that have positive real parts. If you do not see at least 2 positive eigenvalues,"
 write(*,*) "or see the ones you want, you should manually reverse the vector field simply"
 write(*,*) "by making the output of fcn negative"
 write(*,*) "If you select complex eigenvalues, you must select them in their conjugate pairs"

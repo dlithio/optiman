@@ -18,6 +18,9 @@ FPOBJS = $(patsubst %,$(ODIR)/%,$(_fpobjs))
 _optobbjs = ring.o driver.o
 OPTOBJS = $(patsubst %,$(ODIR)/%,$(_optobbjs))
 
+_nseobbjs = utility_mod.o projector_mod_phys.o nse_mod_physf.o auto_mod_physf.o status_mod.o nse.o mrgrnk.o
+NSEOBJS = $(patsubst %,$(ODIR)/%,$(_nseobbjs))
+
 # As long as you've installed ifort, nothing here should need to be
 # changed.
 FC = ifort
@@ -42,6 +45,24 @@ endif
 
 $(ODIR)/$(user_fcn).o: $(user_fcn).f90
 	$(FC) $(FFLAGS) -c $(INC) $(user_fcn).f90 -o $@
+	
+$(ODIR)/utility_mod.o: utility_mod.f90
+	$(FC) $(FFLAGS) -c $(INC) $< -o $@
+	
+$(ODIR)/projector_mod_phys.o: projector_mod_phys.f90
+	$(FC) $(FFLAGS) -c $(INC) $< -o $@
+	
+$(ODIR)/nse_mod_physf.o: nse_mod_physf.f90
+	$(FC) $(FFLAGS) -c $(INC) $< -o $@
+	
+$(ODIR)/auto_mod_physf.o: auto_mod_physf.f90
+	$(FC) $(FFLAGS) -c $(INC) $< -o $@
+	
+$(ODIR)/status_mod.o: status_mod.f90
+	$(FC) $(FFLAGS) -c $(INC) $< -o $@
+	
+$(ODIR)/mrgrnk.o: mrgrnk.f90
+	$(FC) $(FFLAGS) -c $(INC) $< -o $@
 
 $(ODIR)/%.o: $(SDIR)/%.f90
 	$(FC) $(FFLAGS) -c $(INC) -o $@ $<
@@ -55,12 +76,12 @@ fixed_point.x: $(ODIR)/$(user_fcn).o $(FPOBJS)
 optiman.x: $(ODIR)/$(user_fcn).o $(OPTOBJS)
 	$(FC) $(FFLAGS) -o optiman.x $^ $(optiman_libs)
 
-nse: clean utility_mod.o projector_mod_phys.o nse_mod_physf.o auto_mod_physf.o status_mod.o nse.o ring.o driver.o mrgrnk.o
-	$(FC) $(FFLAGS) -o nse_optiman.x *.o $(optiman_libs)
-	
-nse_fixed_point.x: clean utility_mod.o projector_mod_phys.o nse_mod_physf.o auto_mod_physf.o status_mod.o nse.o fixed_point.o mrgrnk.o
-	$(FC) $(FFLAGS) -o nse_fixed_point.x *.o -L$(lapack_lib_dir) -L$(blas_lib_dir) $(fixed_point_libs)
+nse_fixed_point.x: $(NSEOBJS) $(ODIR)/$(user_fcn).o $(FPOBJS)
+	$(FC) $(FFLAGS) -o nse_fixed_point.x $^ -L$(lapack_lib_dir) -L$(blas_lib_dir) $(fixed_point_libs)
 
+nse_optiman.x: $(NSEOBJS) $(ODIR)/$(user_fcn).o $(OPTOBJS)
+	$(FC) $(FFLAGS) -o nse_optiman.x $^ $(optiman_libs)
+	
 timestamp=$(shell date +"%y%m%d%H%M%S")
 store_results:
 ifdef folder
@@ -76,6 +97,12 @@ ifdef folder
 	mv *_input results/$(folder)_$(timestamp)/
 	mv fdot results/$(folder)_$(timestamp)/
 	mv t_angle results/$(folder)_$(timestamp)/
+	mv old_par results/$(folder)_$(timestamp)/
+	mv auto_ndim_key results/$(folder)_$(timestamp)/
+	mv M_key results/$(folder)_$(timestamp)/
+	mv N_key results/$(folder)_$(timestamp)/
+	mv kx_projections results/$(folder)_$(timestamp)/
+	mv ky_projections results/$(folder)_$(timestamp)/
 	rm -f version_info
 	touch version_info
 	echo "These results come from software version" >> version_info
