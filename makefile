@@ -10,7 +10,7 @@ blas_lib_dir=/usr/lib
 
 ODIR = obj
 SDIR = src
-INC = -Iobj
+INC = -I$(ODIR)
 
 _fpobjs = fixed_point.o
 FPOBJS = $(patsubst %,$(ODIR)/%,$(_fpobjs))
@@ -18,8 +18,7 @@ FPOBJS = $(patsubst %,$(ODIR)/%,$(_fpobjs))
 _optobbjs = ring.o driver.o
 OPTOBJS = $(patsubst %,$(ODIR)/%,$(_optobbjs))
 
-_nseobbjs = utility_mod.o projector_mod_phys.o nse_mod_physf.o auto_mod_physf.o status_mod.o nse.o mrgrnk.o
-NSEOBJS = $(patsubst %,$(ODIR)/%,$(_nseobbjs))
+_nseobbjs = utility_mod.o projector_mod_phys.o
 
 # As long as you've installed ifort, nothing here should need to be
 # changed.
@@ -29,13 +28,18 @@ fast_flags=-module $(ODIR) -O3 -xhost -ipo -fp-model strict -i4
 debug_flags=-module $(ODIR) -i4 -O0 -traceback -g -check all -check bounds -debug all -fp-stack-check -fpe0 -ftrapuv -warn all
 fixed_point_libs=-lblas -llapack
 optiman_libs=
+_nseobbjs+= nse_mod_physf_intel.o 
 endif
 ifeq (gfortran,$(FC))
-fast_flags=
-debug_flags=-ffpe-trap=invalid,zero,overflow -fimplicit-none -ffree-form -ffree-line-length-none -fbounds-check -O0 -g -Waliasing -Wall -Wampersand -Warray-bounds -Wc-binding-type -Wcharacter-truncation -Wconversion -Wfunction-elimination -Wimplicit-interface -Wimplicit-procedure -Wintrinsic-shadow -Wintrinsics-std -Wline-truncation -Wno-align-commons -Wno-tabs -Wreal-q-constant -Wsurprising -Wunderflow -Wunused-parameter -Wrealloc-lhs -Wrealloc-lhs-all -Wtarget-lifetime -fbacktrace
+fast_flags=-J$(ODIR) -O3 -march=native -ffree-form -ffree-line-length-none
+debug_flags=-J$(ODIR) -ffpe-trap=invalid,zero,overflow -fimplicit-none -ffree-form -ffree-line-length-none -fbounds-check -O0 -g -Waliasing -Wall -Wampersand -Warray-bounds -Wc-binding-type -Wcharacter-truncation -Wconversion -Wfunction-elimination -Wimplicit-interface -Wimplicit-procedure -Wintrinsic-shadow -Wintrinsics-std -Wline-truncation -Wno-align-commons -Wno-tabs -Wreal-q-constant -Wsurprising -Wunderflow -Wunused-parameter -Wrealloc-lhs -Wrealloc-lhs-all -Wtarget-lifetime -fbacktrace
 fixed_point_libs=-lm -lblas -llapack
 optiman_libs=-lm
+_nseobbjs+=nse_mod_physf_gnu.o 
 endif
+_nseobbjs += status_mod.o auto_mod_physf.o nse.o mrgrnk.o
+NSEOBJS = $(patsubst %,$(ODIR)/%,$(_nseobbjs))
+
 
 FFLAGS=$(debug_flags)
 # Select the flags and libraries that were specified
@@ -52,10 +56,13 @@ $(ODIR)/utility_mod.o: utility_mod.f90
 $(ODIR)/projector_mod_phys.o: projector_mod_phys.f90
 	$(FC) $(FFLAGS) -c $(INC) $< -o $@
 	
-$(ODIR)/nse_mod_physf.o: nse_mod_physf.f90
+$(ODIR)/auto_mod_physf.o: auto_mod_physf.f90
 	$(FC) $(FFLAGS) -c $(INC) $< -o $@
 	
-$(ODIR)/auto_mod_physf.o: auto_mod_physf.f90
+$(ODIR)/nse_mod_physf_intel.o: nse_mod_physf_intel.f90
+	$(FC) $(FFLAGS) -c $(INC) $< -o $@
+	
+$(ODIR)/nse_mod_physf_gnu.o: nse_mod_physf_gnu.f90
 	$(FC) $(FFLAGS) -c $(INC) $< -o $@
 	
 $(ODIR)/status_mod.o: status_mod.f90
@@ -95,14 +102,18 @@ ifdef folder
 	mv *.f90 results/$(folder)_$(timestamp)/
 	mv output results/$(folder)_$(timestamp)/
 	mv *_input results/$(folder)_$(timestamp)/
-	mv fdot results/$(folder)_$(timestamp)/
+	mv fdot results/$(folder)_$(timestamp)/ 2>/dev/null
 	mv t_angle results/$(folder)_$(timestamp)/
+ifneq ("$(wildcard old_par)","")
 	mv old_par results/$(folder)_$(timestamp)/
 	mv auto_ndim_key results/$(folder)_$(timestamp)/
 	mv M_key results/$(folder)_$(timestamp)/
 	mv N_key results/$(folder)_$(timestamp)/
 	mv kx_projections results/$(folder)_$(timestamp)/
 	mv ky_projections results/$(folder)_$(timestamp)/
+else
+	@echo ""
+endif
 	rm -f version_info
 	touch version_info
 	echo "These results come from software version" >> version_info
@@ -116,4 +127,3 @@ endif
 clean:
 	rm -f *.x
 	cd obj && rm -f *.mod *.o
-
