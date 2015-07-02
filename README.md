@@ -44,12 +44,13 @@ demos  fixed_point_input  initial_guess  LICENSE  lorenz.f90  makefile  obj  opt
 ~/optiman(master ✗) 
 ```
 
-This copies 4 important files into the directory. These are 4 files that you'll need to include with any manifold you try to compute.
-⋅⋅* **fixed_point_input** - Contains some parameters for finding the fixed point and eigenvectors of the fixed point that you'll be plotting the Manifold of. The newton iterations will not stop until the norm of the vector field is below *tolerance* or the program has completed *max_iterations* Newton steps.
-⋅⋅* **initial_guess** - Contains the initial guess for the fixed point as a text file. If you open and view this file, you'll see that the initial guess is (1,1,1). We could have specified (0,0,0) since we happen to know that's the exact fixed point we want, but this shows that the program can find the fixed point even when you're off the initial guess.
-⋅⋅* **lorenz.f90** - Needs to be a fortran module called *user_functions*. Must contain at least the 3 subroutines here - *setup*, *fcn*, and *get_jac*. *setup* is run once at the beginning of the program and can be used if you need to allocate arrays or do something more advanced (see the kse examples). *fcn* returns the vector field with the unstable manifold. *get_jac* is used for finding the jacobian. The *get_jac* routine included here can actually be used in any module you create: it's an approximate method that works for any field.
-⋅⋅* **par** - A file with 36 lines that will be passed to the programs and subroutines. The 36th line must be the dimension of the system. The rest are up to you. None besides par(36) are used here, but in the kse examples par(1) is used for a parameter value.
-⋅⋅* **optiman_input** - A file with all the settings for the manifold that will eventually be computed. These settings are described in a future section.
+ This copies 4 important files into the directory. These are 4 files that you'll need to include with any manifold you try to compute.
+ * **fixed_point_input** - Contains some parameters for finding the fixed point and eigenvectors of the fixed point that you'll be plotting the Manifold of. The newton iterations will not stop until the norm of the vector field is below *tolerance* or the program has completed *max_iterations* Newton steps.
+ * **initial_guess** - Contains the initial guess for the fixed point as a text file. If you open and view this file, you'll see that the initial guess is (1,1,1). We could have specified (0,0,0) since we happen to know that's the exact fixed point we want, but this shows that the program can find the fixed point even when you're off the initial guess.
+ * **lorenz.f90** - Needs to be a fortran module called *user_functions*. Must contain at least the 3 subroutines here - *setup*, *fcn*, and *get_jac*. *setup* is run once at the beginning of the program and can be used if you need to allocate arrays or do something more advanced (see the kse examples). *fcn* returns the vector field with the unstable manifold. *get_jac* is used for finding the jacobian. The *get_jac* routine included here can actually be used in any module you create: it's an approximate method that works for any field.
+ * **par** - A file with 36 lines that will be passed to the programs and subroutines. The 36th line must be the dimension of the system. The rest are up to you. None besides par(36) are used here, but in the kse examples par(1) is used for a parameter value.
+ * **optiman_input** - A file with all the settings for the manifold that will eventually be computed. These settings are described in a future section.
+
 1. Create the fixed point program and run it. This will create the fixed_point and eigenvector files that are needed by the program.
 
  ```bash
@@ -136,14 +137,3 @@ my_first.draw_manifold([0,1,2])
 1. That's it, you should be able to look around at it! 
 ![alt text](https://raw.githubusercontent.com/dlithio/optiman/master/demos/images/lorenz.png "Mayavi Example
 ")
-
-
-1. Blah
-
- ```bash
-$ echo $PATH
-```
-
-1. Foo blah
-1. Blah blah baz
-
