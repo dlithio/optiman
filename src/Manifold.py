@@ -13,11 +13,13 @@ class Manifold(object):
     """
     
     def __init__(self,folder_name):
+        self.folder_name = folder_name
         # Load header for loading real file
-        header = np.loadtxt(folder_name + '/header')
+        header = np.loadtxt(folder_name + os.sep + 'header')
         ndim = int(header[0])
+        self.ndim = ndim
         # Load an actual rings file
-        rings = self.read_array(folder_name +'/output',np.float64)
+        rings = self.read_array(folder_name + os.sep + 'output',np.float64)
         numrows = rings.shape[0]/(ndim+1)
         rings.shape = (numrows,ndim+1)
         # Function to get start points of each ring
@@ -76,7 +78,17 @@ class Manifold(object):
         #self.view(mesh)
     
     def draw_manifold(self,dims):
-        mlab.triangular_mesh(self.points[:,0], self.points[:,1], self.points[:,2], self.triangles, scalars=self.time)
+        mlab.triangular_mesh(self.points[:,dims[0]], self.points[:,dims[1]], self.points[:,dims[2]], self.triangles, scalars=self.time)
+        
+    def plot_fixedpoints(self,file_names,dims):
+        self.fixedpoints = np.zeros((len(file_names),self.ndim))
+        for rownum,fn in enumerate(file_names):
+            self.fixedpoints[rownum,:] = np.loadtxt(self.folder_name + os.sep + fn)
+        mlab.points3d(self.fixedpoints[:,dims[0]],
+                      self.fixedpoints[:,dims[1]], 
+                      self.fixedpoints[:,dims[2]], 
+                      np.ones((len(file_names))), 
+                      line_width=0)
     
     # Now the test of the new visualization software
     def read_array(self,filename,datatype):
