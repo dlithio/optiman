@@ -1,12 +1,12 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+from mayavi import mlab
+import inspect,os
 
-import matplotlib as mpl
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
-from tvtk.api import tvtk
-from mayavi.scripts import mayavi2
-
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
+dname += os.sep + 'results'
+os.chdir(dname)
 
 class Manifold(object):
     """Implments the timestepping
@@ -53,13 +53,18 @@ class Manifold(object):
                          self.get_closest_points(bottom_ring,top_ring,top_ring_start)
                          
         self.get_top_to_bottom(bottom_triangles,top_triangles,start_points,end_points)
-
-        # Now visualize it
-        dims = [1,2,3]
+        
         all_triangles = np.concatenate((bottom_triangles,top_triangles), axis=0)
-        mesh = tvtk.PolyData(points=rings[:,dims], polys=all_triangles)
-        mesh.point_data.scalars = rings[:,0]
-        mesh.point_data.scalars.name = 'time'
+        self.points = rings[:,1:]
+        self.triangles = all_triangles
+        self.time = rings[:,0]
+        
+        # Now visualize it
+        # dims = [1,2,3]
+        #mesh = tvtk.PolyData(points=rings[:,dims], polys=all_triangles)
+        #self.points = rings[:,dims]
+        #mesh.point_data.scalars = rings[:,0]
+        #mesh.point_data.scalars.name = 'time'
         #fdot = read_array('fdot',np.float64)
         #fdot.shape = (fdot.shape[0]/2,2)
         #mesh.point_data.scalars = fdot[:,1]
@@ -68,8 +73,11 @@ class Manifold(object):
         #t_angle.shape = (t_angle.shape[0]/2,2)
         #mesh.point_data.scalars = t_angle[:,1]
         #mesh.point_data.scalars.name = 't_angle'
-        self.view(mesh)
-        
+        #self.view(mesh)
+    
+    def draw_manifold(self,dims):
+        mlab.triangular_mesh(self.points[:,0], self.points[:,1], self.points[:,2], self.triangles, scalars=self.time)
+    
     # Now the test of the new visualization software
     def read_array(self,filename,datatype):
         try:
@@ -121,16 +129,3 @@ class Manifold(object):
         nbrs = NearestNeighbors(n_neighbors=1).fit(top_ring)
         distances, indices = nbrs.kneighbors(bottom_ring)
         return indices[:,0]  + global_top_ring_start_index
-    
-    @mayavi2.standalone
-    def view(self,mesh):
-        from mayavi.sources.vtk_data_source import VTKDataSource
-        from mayavi.modules.surface import Surface
-        
-        mayavi.new_scene()
-        src = VTKDataSource(data = mesh)
-        mayavi.add_source(src)
-        s = Surface()
-        mayavi.add_module(s)
-
-
