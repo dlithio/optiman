@@ -43,9 +43,9 @@ sdiff_switch=sdiff_switch_input
 f_switch=f_switch_input
 order_of_accuracy=order_of_accuracy_input
 big = order_of_accuracy
-call system( 'rm output' )
-call system( 'rm fdot' )
-call system( 'rm t_angle' )
+call system( 'rm -f output' )
+call system( 'rm -f fdot' )
+call system( 'rm -f t_angle' )
 open(unit=217,file="output",access='stream')
 open(unit=218,file="fdot",access='stream')
 open(unit=219,file="t_angle",access='stream')
