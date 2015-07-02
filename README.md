@@ -53,7 +53,7 @@ demos  fixed_point_input  initial_guess  LICENSE  lorenz.f90  makefile  obj  opt
 
 1. Create the fixed point program and run it. This will create the fixed_point and eigenvector files that are needed by the program.
 
- ```bash
+ ```
 ~/optiman(master ✗) make clean
 rm -f *.x
 cd obj && rm -f *.mod *.o
