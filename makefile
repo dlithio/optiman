@@ -20,8 +20,9 @@ OPTOBJS = $(patsubst %,$(ODIR)/%,$(_optobbjs))
 
 _nseobbjs = utility_mod.o projector_mod_phys.o
 
-ifndef FC
 FC = gfortran
+ifeq (intel,$(compliler))
+FC = ifort
 endif
 
 # As long as you've installed ifort, nothing here should need to be
@@ -44,10 +45,10 @@ endif
 _nseobbjs += status_mod.o auto_mod_physf.o nse.o mrgrnk.o
 NSEOBJS = $(patsubst %,$(ODIR)/%,$(_nseobbjs))
 
-FFLAGS=$(debug_flags)
-# Select the flags and libraries that were specified
-ifeq (fast,$(flags))
 FFLAGS=$(fast_flags)
+# Select the flags and libraries that were specified
+ifeq (debug,$(flags))
+FFLAGS=$(debug_flags)
 endif
 
 $(ODIR)/$(user_fcn).o: $(user_fcn).f90
@@ -95,33 +96,32 @@ nse_optiman.x: $(NSEOBJS) $(ODIR)/$(user_fcn).o $(OPTOBJS)
 timestamp=$(shell date +"%y%m%d%H%M%S")
 store_results:
 ifdef folder
-	mkdir results/$(folder)_$(timestamp)
-	mv eig* results/$(folder)_$(timestamp)/
-	mv *.x results/$(folder)_$(timestamp)/
-	mv header results/$(folder)_$(timestamp)/
-	mv fixed_point results/$(folder)_$(timestamp)/
-	mv initial_guess results/$(folder)_$(timestamp)/
-	mv par results/$(folder)_$(timestamp)/
-	mv *.f90 results/$(folder)_$(timestamp)/
-	mv output results/$(folder)_$(timestamp)/
-	mv *_input results/$(folder)_$(timestamp)/
-	mv fdot results/$(folder)_$(timestamp)/ 2>/dev/null
-	mv t_angle results/$(folder)_$(timestamp)/
+	@mkdir results/$(folder)_$(timestamp)
+	@mv eig* results/$(folder)_$(timestamp)/
+	@mv *.x results/$(folder)_$(timestamp)/
+	@mv header results/$(folder)_$(timestamp)/
+	@mv fixed_point results/$(folder)_$(timestamp)/
+	@mv initial_guess results/$(folder)_$(timestamp)/
+	@mv par results/$(folder)_$(timestamp)/
+	@mv *.f90 results/$(folder)_$(timestamp)/
+	@mv output results/$(folder)_$(timestamp)/
+	@mv *_input results/$(folder)_$(timestamp)/
+	@mv fdot results/$(folder)_$(timestamp)/ 2>/dev/null
+	@mv t_angle results/$(folder)_$(timestamp)/
 ifneq ("$(wildcard old_par)","")
-	mv old_par results/$(folder)_$(timestamp)/
-	mv auto_ndim_key results/$(folder)_$(timestamp)/
-	mv M_key results/$(folder)_$(timestamp)/
-	mv N_key results/$(folder)_$(timestamp)/
-	mv kx_projections results/$(folder)_$(timestamp)/
-	mv ky_projections results/$(folder)_$(timestamp)/
-else
-	@echo ""
+	@mv old_par results/$(folder)_$(timestamp)/
+	@mv auto_ndim_key results/$(folder)_$(timestamp)/
+	@mv M_key results/$(folder)_$(timestamp)/
+	@mv N_key results/$(folder)_$(timestamp)/
+	@mv kx_projections results/$(folder)_$(timestamp)/
+	@mv ky_projections results/$(folder)_$(timestamp)/
 endif
-	rm -f version_info
-	touch version_info
-	echo "These results come from software version" >> version_info
-	git rev-parse HEAD >> version_info
-	mv version_info results/$(folder)_$(timestamp)/
+	@rm -f version_info
+	@touch version_info
+	@echo "These results come from software version" >> version_info
+	@git rev-parse HEAD >> version_info
+	@mv version_info results/$(folder)_$(timestamp)/
+	@echo "Results stored in results/$(folder)_$(timestamp)"
 else
 	@echo "you need to specify a folder to put the files in using doing"
 	@echo "make store_results folder=folder_name_to_stash_stuff_in"
