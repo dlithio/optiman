@@ -34,7 +34,8 @@ unzip optiman-master.zip
 There are several demos included in the demos folder. The demos lorenz, kse_origin, and kse_bottom_bimodal will likely be the closest to what you want to do and they are all done the same way.
 
 1. Move to the base folder of the project and copy the contents of the demos/lorenz folder into it.
-```
+
+ ```bash
 ~/optiman(master ✗) ls
 demos  LICENSE  makefile  obj  README.md  results  src
 ~/optiman(master ✗) cp demos/lorenz/* .
@@ -42,14 +43,17 @@ demos  LICENSE  makefile  obj  README.md  results  src
 demos  fixed_point_input  initial_guess  LICENSE  lorenz.f90  makefile  obj  optiman_input  par  README.md  results  src
 ~/optiman(master ✗) 
 ```
-This copies 4 important files into the directory. These are 4 files that you'll need to include with any manifold you try to compute.
-⋅⋅* **fixed_point_input** - Contains some parameters for finding the fixed point and eigenvectors of the fixed point that you'll be plotting the Manifold of. The newton iterations will not stop until the norm of the vector field is below *tolerance* or the program has completed *max_iterations* Newton steps.
-⋅⋅* **initial_guess** - Contains the initial guess for the fixed point as a text file. If you open and view this file, you'll see that the initial guess is (1,1,1). We could have specified (0,0,0) since we happen to know that's the exact fixed point we want, but this shows that the program can find the fixed point even when you're off the initial guess.
-⋅⋅* **lorenz.f90** - Needs to be a fortran module called *user_functions*. Must contain at least the 3 subroutines here - *setup*, *fcn*, and *get_jac*. *setup* is run once at the beginning of the program and can be used if you need to allocate arrays or do something more advanced (see the kse examples). *fcn* returns the vector field with the unstable manifold. *get_jac* is used for finding the jacobian. The *get_jac* routine included here can actually be used in any module you create: it's an approximate method that works for any field.
-⋅⋅* **par** - A file with 36 lines that will be passed to the programs and subroutines. The 36th line must be the dimension of the system. The rest are up to you. None besides par(36) are used here, but in the kse examples par(1) is used for a parameter value.
-⋅⋅* **optiman_input** - A file with all the settings for the manifold that will eventually be computed. These settings are described in a future section.
-2. Create the fixed point program and run it. This will create the fixed_point and eigenvector files that are needed by the program.
-```
+
+ This copies 4 important files into the directory. These are 4 files that you'll need to include with any manifold you try to compute.
+ * **fixed_point_input** - Contains some parameters for finding the fixed point and eigenvectors of the fixed point that you'll be plotting the Manifold of. The newton iterations will not stop until the norm of the vector field is below *tolerance* or the program has completed *max_iterations* Newton steps.
+ * **initial_guess** - Contains the initial guess for the fixed point as a text file. If you open and view this file, you'll see that the initial guess is (1,1,1). We could have specified (0,0,0) since we happen to know that's the exact fixed point we want, but this shows that the program can find the fixed point even when you're off the initial guess.
+ * **lorenz.f90** - Needs to be a fortran module called *user_functions*. Must contain at least the 3 subroutines here - *setup*, *fcn*, and *get_jac*. *setup* is run once at the beginning of the program and can be used if you need to allocate arrays or do something more advanced (see the kse examples). *fcn* returns the vector field with the unstable manifold. *get_jac* is used for finding the jacobian. The *get_jac* routine included here can actually be used in any module you create: it's an approximate method that works for any field.
+ * **par** - A file with 36 lines that will be passed to the programs and subroutines. The 36th line must be the dimension of the system. The rest are up to you. None besides par(36) are used here, but in the kse examples par(1) is used for a parameter value.
+ * **optiman_input** - A file with all the settings for the manifold that will eventually be computed. These settings are described in a future section.
+
+1. Create the fixed point program and run it. This will create the fixed_point and eigenvector files that are needed by the program.
+
+ ```
 ~/optiman(master ✗) make clean
 rm -f *.x
 cd obj && rm -f *.mod *.o
@@ -89,8 +93,10 @@ gfortran -Jobj -O3 -march=native -ffree-form -ffree-line-length-none -o fixed_po
  for use by optiman
 ~/optiman(master ✗) 
 ```
-3. Create the manifold program and run it.
-```
+
+1. Create the manifold program and run it.
+
+ ```bash
 ~/optiman(master ✗) make optiman.x user_fcn=lorenz
 gfortran -Jobj -O3 -march=native -ffree-form -ffree-line-length-none -c -Iobj -o obj/ring.o src/ring.f90
 gfortran -Jobj -O3 -march=native -ffree-form -ffree-line-length-none -c -Iobj -o obj/driver.o src/driver.f90
@@ -103,8 +109,10 @@ gfortran -Jobj -O3 -march=native -ffree-form -ffree-line-length-none -o optiman.
    100.00000000000000      %
 ~/optiman(master ✗) 
 ```
-4. Store the results in the results folder for viewing later. This can be done with a simple command
-```
+
+1. Store the results in the results folder for viewing later. This can be done with a simple command
+
+ ```bash
 ~/optiman(master ✗) make store_results folder=my_first_manifold  
 Results stored in results/my_first_manifold_150702095031
 ~/optiman(master ✗) ls
@@ -112,18 +120,20 @@ demos  LICENSE  makefile  obj  README.md  results  src
 ~/optiman(master ✗) 
 ```
 
+
 # Visualizing your first manifold
+
 1. Launch mayavi2. You may be able to launch this like any other program. You can launch it from the command line by typing *mayavi2*. In Ubuntu, the best way to launch it is by hitting Alt+F2 and then typing mayavi2 and hitting enter.
-2. Click file->Run Python Script. Navigate to the project and then click the *src* folder. Double click on *Manifold.py*.
-3. Use the built in python prompt, use the following commands to visualize your Manifold. You'll want to use your actual folder name rather than the one I have here.
-```
+
+1. Click file->Run Python Script. Navigate to the project and then click the *src* folder. Double click on *Manifold.py*.
+
+1. Use the built in python prompt, use the following commands to visualize your Manifold. You'll want to use your actual folder name rather than the one I have here.
+
+ ```
 my_first = Manifold('my_first_manifold_150702095031')
 my_first.draw_manifold([0,1,2])
 ```
-4. That's it, you should be able to look around at it! 
+
+1. That's it, you should be able to look around at it! 
 ![alt text](https://raw.githubusercontent.com/dlithio/optiman/master/demos/images/lorenz.png "Mayavi Example
 ")
-
-
-
-
