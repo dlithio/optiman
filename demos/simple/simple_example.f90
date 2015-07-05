@@ -13,9 +13,9 @@ integer, intent(in) :: n
 double precision, intent(inout) :: x(n) ! really intent(in), want to avoid a mem copy though
 double precision, intent(inout) :: fvec(n)
 ! A test manifold
-fvec(1) = x(1)
-fvec(2) = x(2)
-fvec(3) = -x(3)
+fvec(1) = 2.d0*x(1)
+fvec(2) = 2.d0*x(2)
+fvec(3) = 2.d0*x(1)*dcos(x(1)) + 2.d0*x(2)*dcos(x(2)) - x(3) + dsin(x(1)) + dsin(x(2))
 end subroutine fcn
 
 subroutine get_jac(n,x,a)

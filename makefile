@@ -12,7 +12,7 @@ ODIR = obj
 SDIR = src
 INC = -I$(ODIR)
 
-_fpobjs = fixed_point.o
+_fpobjs = mrgrnk.o fixed_point.o
 FPOBJS = $(patsubst %,$(ODIR)/%,$(_fpobjs))
 
 _optobbjs = ring.o driver.o
@@ -71,9 +71,6 @@ $(ODIR)/nse_mod_physf_gnu.o: nse_mod_physf_gnu.f90
 	
 $(ODIR)/status_mod.o: status_mod.f90
 	$(FC) $(FFLAGS) -c $(INC) $< -o $@
-	
-$(ODIR)/mrgrnk.o: mrgrnk.f90
-	$(FC) $(FFLAGS) -c $(INC) $< -o $@
 
 $(ODIR)/%.o: $(SDIR)/%.f90
 	$(FC) $(FFLAGS) -c $(INC) -o $@ $<
@@ -98,6 +95,7 @@ store_results:
 ifdef folder
 	@mkdir results/$(folder)_$(timestamp)
 	@mv eig* results/$(folder)_$(timestamp)/
+	@mv q_matrix results/$(folder)_$(timestamp)/
 	@mv *.x results/$(folder)_$(timestamp)/
 	@mv header results/$(folder)_$(timestamp)/
 	@mv fixed_point results/$(folder)_$(timestamp)/
@@ -145,6 +143,7 @@ clean_results:
 	rm -f N_key 
 	rm -f kx_projections 
 	rm -f ky_projections 
+	rm -f q_matrix 
 
 clean:
 	rm -f *.x

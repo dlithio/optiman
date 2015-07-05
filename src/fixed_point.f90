@@ -5,17 +5,27 @@
 
 program fixed_point
 use user_functions
+use m_mrgrnk
 implicit none
 double precision, allocatable :: a(:,:),b(:,:),f(:),x(:)
 double precision, allocatable :: wr(:),wi(:),vl(:,:),vr(:,:),work(:)
+double precision, allocatable :: wr_sorted(:),wi_sorted(:),vr_sorted(:,:)
+double precision, allocatable :: q(:,:),tau(:)
+integer, allocatable :: wr_rankings(:)
 character :: trans,JOBVL,JOBVR
 integer :: M,N,NRHS,LDA,LDB,INFO
 integer :: LDVL,LDVR,LWORK
 integer, allocatable :: IPIV(:)
 integer :: i,user1,user2
+integer :: k
 integer :: max_iterations,current_iteration
 double precision :: tolerance,par(36)
-external :: DGETRF,DGETRS,DGEEV
+! For the newton iterations
+external :: DGETRF,DGETRS
+! For eigenvectors
+external :: DGEEV
+! For qr decomposition
+external :: DGEQRF,DORGQR
 namelist /fixed_point_input/ tolerance,max_iterations
 
 open(100,file="fixed_point_input",delim='APOSTROPHE')
@@ -89,8 +99,23 @@ allocate(wr(n))
 allocate(wi(n))
 allocate(VL(LDVL,N))
 allocate(VR(LDVR,N))
+allocate(wr_sorted(n))
+allocate(wi_sorted(n))
+allocate(VR_sorted(LDVR,N))
 allocate(work(lwork))
 call DGEEV( JOBVL, JOBVR, N, A, LDA, WR, WI, VL, LDVL, VR, LDVR, WORK, LWORK, INFO )
+! Now, we want to sort by the positive eigenvalues
+allocate(wr_rankings(n))
+call mrgrnk(wr, wr_rankings)
+do i=0,n-1
+wr_sorted(n-i) = wr(wr_rankings(i+1))
+wi_sorted(n-i) = wi(wr_rankings(i+1))
+vr_sorted(:,n-i) = vr(:,wr_rankings(i+1))
+enddo
+wr = wr_sorted
+wi = wi_sorted
+vr = vr_sorted
+
 
 write(*,*) "Here we list out all the eigenvalues of the jacobian at that fixed point"
 write(*,*) "that have positive real parts. If you do not see at least 2 positive eigenvalues,"
@@ -115,8 +140,6 @@ read(*,*) user1
 write(*,*) "Select the value of the first eigenvalue/vector you would like"
 write(*,*) "to use"
 read(*,*) user2
-write(*,*) "your selections have been saved to eigval1,eigval2,eigvec1,eigvec2"
-write(*,*) "for use by optiman"
 open(100,file="eigval1")
 write(100,*) wr(user1)
 write(100,*) wi(user1)
@@ -136,15 +159,45 @@ write(100,*) vr(i,user2)
 enddo
 close(100)
 
+allocate(q(m,n))
+q = vr
+allocate(tau(min(m,n)))
+call DGEQRF( M, N, q, LDA, TAU, WORK, LWORK, INFO )
+if (info .lt. 0) then
+write(*,*) "first step of qr decomp failed"
+stop
+endif
+k = min(m,n)
+call DORGQR( M, N, K, q, LDA, TAU, WORK, LWORK, INFO )
+if (info .lt. 0) then
+write(*,*) "second step of qr decomp failed"
+stop
+endif
+
+call system( 'rm -f q' )
+open(unit=300,file="q_matrix",access='stream')
+write(300) q
+close(300)
+
+write(*,*) "your selections have been saved to eigval1,eigval2,eigvec1,eigvec2"
+write(*,*) "for use by optiman. We have also saved the Q matrix from the"
+write(*,*) "qr decomposition for plotting and for more accurate initial points"
+
 deallocate(a)
 deallocate(b)
 deallocate(IPIV)
 deallocate(x)
 deallocate(f)
 deallocate(wr)
+deallocate(wr_rankings)
 deallocate(wi)
 deallocate(VL)
 deallocate(VR)
+deallocate(wr_sorted)
+deallocate(wi_sorted)
+deallocate(VR_sorted)
 deallocate(work)
+deallocate(q)
+deallocate(tau)
 
 end program
