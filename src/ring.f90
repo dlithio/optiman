@@ -699,8 +699,8 @@ call dot(t,f,f_dot_t,npoints)
 !enddo
 ! Another important change (?) with the adhoc changes.
 ! call normc(fideal,npoints)
-normct(:,1:(npoints-1)) = t(:,2:npoints)
-normct(:,npoints) = t(:,1)
+!normct(:,1:(npoints-1)) = t(:,2:npoints)
+!normct(:,npoints) = t(:,1)
 do i=1,npoints
     !if ((sum(t(:,i)*normct(:,i))**0.5 .gt. 0.999d0) .and. (dabs(f_dot_t(i)) .le. 0.99d0)) then
         fideal(:,i) = f(:,i) + (phi(i) - f_dot_t(i)) * t(:,i)
@@ -720,17 +720,22 @@ double precision, intent(in) :: dt
 points_new = points + dt*fideal
 end subroutine timestep
 
-subroutine write_output(ringnum,npoints)
+subroutine write_output(ringnum,npoints,ndim)
 implicit none
 integer, intent(in) :: ringnum
 integer, intent(in) :: npoints
+integer, intent(in) :: ndim
 integer :: i
+call find_sdiff(npoints)
+call find_s(npoints,sdiff,s)
+call points_to_tangent(ndim,npoints)
+call dot(t,f,f_dot_t,npoints)
 normct(:,1:(npoints-1)) = t(:,2:npoints)
 normct(:,npoints) = t(:,1)
 do i=1,npoints
 write(217) dble(ringnum),points(:,i)
-!write(218) dble(ringnum),f_dot_t(i)
-!write(219) dble(ringnum),sum(t(:,i)*normct(:,i))**0.5
+write(218) dble(ringnum),f_dot_t(i)
+write(219) dble(ringnum),sum(t(:,i)*normct(:,i))**0.5
 enddo
 end subroutine write_output
 

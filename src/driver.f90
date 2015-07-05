@@ -80,7 +80,7 @@ call set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoin
 ringnum=1
 call set_when_to_adapt(radius,npoints,distance_percentagefar,distance_percentageclose)
 call find_f(ndim,npoints)
-call write_output(ringnum,npoints)
+call write_output(ringnum,npoints,ndim)
 
 do ringnum=2,saved_rings
     do stepnum=1,steps_per_save
@@ -104,7 +104,7 @@ do ringnum=2,saved_rings
         endif
         call accept_new_ring()
     enddo
-    call write_output(ringnum,npoints)
+    call write_output(ringnum,npoints,ndim)
     write(*,*) dble(ringnum)/dble(saved_rings)*100.d0,"%"
 enddo
 

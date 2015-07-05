@@ -19,7 +19,7 @@ class Manifold(object):
         ndim = int(header[0])
         self.ndim = ndim
         # Load an actual rings file
-        rings = self.read_array(folder_name + os.sep + 'output',np.float64)
+        rings = self.read_array('output',np.float64)
         numrows = rings.shape[0]/(ndim+1)
         rings.shape = (numrows,ndim+1)
         # Function to get start points of each ring
@@ -67,18 +67,21 @@ class Manifold(object):
         #self.points = rings[:,dims]
         #mesh.point_data.scalars = rings[:,0]
         #mesh.point_data.scalars.name = 'time'
-        #fdot = read_array('fdot',np.float64)
-        #fdot.shape = (fdot.shape[0]/2,2)
+        fdot = self.read_array('fdot',np.float64)
+        fdot.shape = (fdot.shape[0]/2,2)
+        self.fdot = fdot[:,1]
         #mesh.point_data.scalars = fdot[:,1]
         #mesh.point_data.scalars.name = 'f_dot_t'
-        #t_angle = read_array('t_angle',np.float64)
-        #t_angle.shape = (t_angle.shape[0]/2,2)
+        t_angle = self.read_array('t_angle',np.float64)
+        t_angle.shape = (t_angle.shape[0]/2,2)
+        self.t_angle = t_angle[:,1]
         #mesh.point_data.scalars = t_angle[:,1]
         #mesh.point_data.scalars.name = 't_angle'
         #self.view(mesh)
+        self.coloring = self.time
     
     def draw_manifold(self,dims):
-        mlab.triangular_mesh(self.points[:,dims[0]], self.points[:,dims[1]], self.points[:,dims[2]], self.triangles, scalars=self.time)
+        mlab.triangular_mesh(self.points[:,dims[0]], self.points[:,dims[1]], self.points[:,dims[2]], self.triangles, scalars=self.coloring)
         
     def plot_fixedpoints(self,file_names,dims):
         self.fixedpoints = np.zeros((len(file_names),self.ndim))
@@ -93,7 +96,7 @@ class Manifold(object):
     # Now the test of the new visualization software
     def read_array(self,filename,datatype):
         try:
-            result = np.fromfile(filename,dtype=datatype)
+            result = np.fromfile(self.folder_name + os.sep + filename,dtype=datatype)
         except IOError:
             print(filename + " was not yet available")
         return result
