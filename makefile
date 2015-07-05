@@ -74,9 +74,6 @@ $(ODIR)/status_mod.o: status_mod.f90
 
 $(ODIR)/%.o: $(SDIR)/%.f90
 	$(FC) $(FFLAGS) -c $(INC) -o $@ $<
-	
-$(ODIR)/fixed_point.o: $(SDIR)/fixed_point.f90
-	$(FC) $(FFLAGS) -c $(INC) -o $@ $< -L$(lapack_lib_dir) -L$(blas_lib_dir) $(fixed_point_libs)
 
 fixed_point.x: $(ODIR)/$(user_fcn).o $(FPOBJS)
 	$(FC) $(FFLAGS) -o fixed_point.x $^ -L$(lapack_lib_dir) -L$(blas_lib_dir) $(fixed_point_libs)
