@@ -212,7 +212,7 @@ double precision, intent(inout) :: y0(ndim-2)
 integer :: m,i
 double precision :: tol
 integer :: max_iter
-tol = 1.d-4
+tol = 1.d-14
 max_iter = 50
 contraction_points = 1.d0
 do i=1,int(time_max/h)
