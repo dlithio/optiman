@@ -22,8 +22,9 @@ double precision :: distance_percentagefar
 double precision :: distance_percentageclose
 integer :: steps_per_save,stepnum
 integer :: saved_rings,ringnum
+integer :: initial_points_switch
 logical :: something_wrong
-namelist /optiman_input/ npoints_start,radius,dt,steps_per_save,saved_rings,distance_percentagefar,distance_percentageclose,f_switch,order_of_accuracy
+namelist /optiman_input/ npoints_start,radius,dt,steps_per_save,saved_rings,distance_percentagefar,distance_percentageclose,f_switch,order_of_accuracy,initial_points_switch
 
 open(100,file="optiman_input",delim='APOSTROPHE')
 read(100,nml=optiman_input)
@@ -37,12 +38,11 @@ do i=1,36
 read(100,*) PAR(i)
 enddo
 close(100)
-ndim = par(36)
+ndim = int(par(36))
 call setup(par)
 
 npoints = npoints_start
-call set_switches(sdiff_switch,f_switch,order_of_accuracy)
-call allocate_arrays(ndim,npoints)
+call init_ring_mod(sdiff_switch,f_switch,order_of_accuracy,initial_points_switch,ndim,npoints)
 
 allocate(eigvec1(ndim))
 allocate(eigvec2(ndim))
@@ -65,18 +65,18 @@ close(100)
 
 eigval1 = 1.d0
 eigval2 = 1.d0
-call set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoints)
+call set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,ndim,npoints)
 
-call find_f(ndim,npoints)
+!call find_f(ndim,npoints)
 open(unit=101,file="header")
 write(101,*) ndim
 write(101,*) saved_rings
 write(101,*) steps_per_save
 write(101,*) dt
 close(101)
-call deallocate_arrays()
-call allocate_arrays(ndim,npoints)
-call set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoints)
+!call deallocate_arrays()
+!call allocate_arrays(ndim,npoints)
+!call set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoints)
 ringnum=1
 call set_when_to_adapt(radius,npoints,distance_percentagefar,distance_percentageclose)
 call find_f(ndim,npoints)

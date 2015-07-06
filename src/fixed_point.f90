@@ -36,7 +36,7 @@ do i=1,36
 read(100,*) PAR(i)
 enddo
 close(100)
-N = par(36)
+N = int(par(36))
 call setup(par)
 TRANS = 'N'
 M = N

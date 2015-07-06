@@ -32,14 +32,14 @@ ifeq (ifort,$(FC))
 fast_flags=-module $(ODIR) -O3 -xhost -ipo -fp-model strict -i4
 debug_flags=-module $(ODIR) -i4 -O0 -traceback -g -check all -check bounds -debug all -fp-stack-check -fpe0 -ftrapuv -warn all
 fixed_point_libs= -lblas -llapack
-optiman_libs=
+optiman_libs=-lblas
 _nseobbjs+= nse_mod_physf_intel.o 
 endif
 ifeq (gfortran,$(FC))
 fast_flags=-J$(ODIR) -O3 -march=native -ffree-form -ffree-line-length-none
 debug_flags=-J$(ODIR) -ffpe-trap=invalid,zero,overflow -fimplicit-none -ffree-form -ffree-line-length-none -fbounds-check -O0 -g -Waliasing -Wall -Wampersand -Warray-bounds -Wc-binding-type -Wcharacter-truncation -Wconversion -Wfunction-elimination -Wimplicit-interface -Wimplicit-procedure -Wintrinsic-shadow -Wintrinsics-std -Wline-truncation -Wno-align-commons -Wno-tabs -Wreal-q-constant -Wsurprising -Wunderflow -Wunused-parameter -Wrealloc-lhs -Wrealloc-lhs-all -Wtarget-lifetime -fbacktrace
 fixed_point_libs=-lm -lblas -llapack
-optiman_libs=-lm
+optiman_libs=-lm -lblas
 _nseobbjs+=nse_mod_physf_gnu.o 
 endif
 _nseobbjs += status_mod.o auto_mod_physf.o nse.o mrgrnk.o
@@ -79,13 +79,13 @@ fixed_point.x: $(ODIR)/$(user_fcn).o $(FPOBJS)
 	$(FC) $(FFLAGS) -o fixed_point.x $^ -L$(lapack_lib_dir) -L$(blas_lib_dir) $(fixed_point_libs)
 
 optiman.x: $(ODIR)/$(user_fcn).o $(OPTOBJS)
-	$(FC) $(FFLAGS) -o optiman.x $^ $(optiman_libs)
+	$(FC) $(FFLAGS) -o optiman.x $^ -L$(blas_lib_dir) $(optiman_libs)
 
 nse_fixed_point.x: $(NSEOBJS) $(ODIR)/$(user_fcn).o $(FPOBJS)
 	$(FC) $(FFLAGS) -o nse_fixed_point.x $^ -L$(lapack_lib_dir) -L$(blas_lib_dir) $(fixed_point_libs)
 
 nse_optiman.x: $(NSEOBJS) $(ODIR)/$(user_fcn).o $(OPTOBJS)
-	$(FC) $(FFLAGS) -o nse_optiman.x $^ $(optiman_libs)
+	$(FC) $(FFLAGS) -o nse_optiman.x $^ -L$(blas_lib_dir) $(optiman_libs)
 	
 timestamp=$(shell date +"%y%m%d%H%M%S")
 store_results:

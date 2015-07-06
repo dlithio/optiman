@@ -7,4 +7,5 @@
  distance_percentagefar = 3.d0,
  distance_percentageclose = 0.1d0,
  f_switch = 3,
- order_of_accuracy=1/
+ order_of_accuracy=1,
+ initial_points_switch=2/

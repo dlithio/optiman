@@ -6,7 +6,18 @@ double precision, private :: min_dist
 integer, private :: sdiff_switch
 integer, private :: f_switch
 integer, private :: order_of_accuracy
+integer, private :: initial_points_switch
 integer :: big
+double precision, private, parameter :: time_max = 1.d0
+double precision, private, parameter :: h = .000001d0
+double precision, allocatable, private :: initial_points(:,:)
+double precision, allocatable, private :: initial_f(:,:)
+double precision, allocatable, private :: initial_work1(:,:)
+double precision, allocatable, private :: initial_work2(:,:)
+double precision, allocatable, private :: contraction_points(:,:)
+double precision, allocatable, private :: contraction_force(:,:)
+double precision, allocatable, private :: contraction_points_last(:,:)
+double precision, allocatable, private :: contraction_force_last(:,:)
 double precision, allocatable, private :: points(:,:)
 double precision, allocatable, private :: big_points(:,:)
 double precision, allocatable, private :: t(:,:)
@@ -31,17 +42,22 @@ double precision, allocatable, private :: points_new(:,:)
 double precision, allocatable, private :: position_vec_new(:)
 double precision, allocatable, private :: f_change_scalar(:)
 double precision, allocatable, private :: f_change_scalart(:)
+double precision, allocatable, private :: q(:,:)
 logical, private :: first_run = .TRUE.
 contains
 
-subroutine set_switches(sdiff_switch_input,f_switch_input,order_of_accuracy_input)
+subroutine init_ring_mod(sdiff_switch_input,f_switch_input,order_of_accuracy_input,initial_points_switch_input,ndim,npoints)
 implicit none
 integer, intent(in) :: sdiff_switch_input
 integer, intent(in) :: f_switch_input
 integer, intent(in) :: order_of_accuracy_input
+integer, intent(in) :: initial_points_switch_input
+integer, intent(in) :: ndim
+integer, intent(in) :: npoints
 sdiff_switch=sdiff_switch_input
 f_switch=f_switch_input
 order_of_accuracy=order_of_accuracy_input
+initial_points_switch = initial_points_switch_input
 big = order_of_accuracy
 call system( 'rm -f output' )
 call system( 'rm -f fdot' )
@@ -49,7 +65,14 @@ call system( 'rm -f t_angle' )
 open(unit=217,file="output",access='stream')
 open(unit=218,file="fdot",access='stream')
 open(unit=219,file="t_angle",access='stream')
-end subroutine set_switches
+call allocate_arrays(ndim,npoints)
+open(unit=300,file="q_matrix",access='stream')
+allocate(q(ndim,ndim))
+read(300) q
+close(300)
+end subroutine init_ring_mod
+
+
 
 subroutine set_when_to_adapt(radius,npoints,distance_percentagefar,distance_percentageclose)
 implicit none
@@ -70,6 +93,16 @@ integer :: i
 allocate(points(ndim,npoints))
 if (first_run) then 
 allocate(points_new(ndim,npoints))
+endif
+allocate(initial_points(ndim,npoints))
+allocate(initial_f(ndim,npoints))
+if (initial_points_switch .eq. 2) then
+allocate(initial_work1(ndim,int(time_max/h)))
+allocate(initial_work2(ndim,int(time_max/h)))
+allocate(contraction_points(ndim,int(time_max/h)))
+allocate(contraction_force(ndim,int(time_max/h)))
+allocate(contraction_points_last(ndim,int(time_max/h)))
+allocate(contraction_force_last(ndim,int(time_max/h)))
 endif
 allocate(big_points(ndim,(1-big):(npoints+big)))
 allocate(t(ndim,npoints))
@@ -102,7 +135,7 @@ enddo
 first_run = .FALSE.
 end subroutine allocate_arrays
 
-subroutine set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,npoints)
+subroutine set_initial_points1(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,ndim,npoints)
 implicit none
 double precision, intent(inout) :: eigvec1(:)
 double precision, intent(inout) :: eigvec2(:)
@@ -110,6 +143,7 @@ double precision, intent(in) :: eigval1
 double precision, intent(in) :: eigval2
 double precision, intent(inout) :: fixed_point(:)
 double precision, intent(in) :: radius
+integer, intent(in) :: ndim
 integer, intent(in) :: npoints
 integer :: i
 do concurrent (i=1:npoints)
@@ -118,6 +152,112 @@ points(:,i) = fixed_point + radius * &
                + eigval2*dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2)
 !write(*,*) '**',i,points(:,i),i,'**'
 end do
+end subroutine set_initial_points1
+
+subroutine set_initial_points2(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,ndim,npoints)
+implicit none
+double precision, intent(inout) :: eigvec1(:)
+double precision, intent(inout) :: eigvec2(:)
+double precision, intent(in) :: eigval1
+double precision, intent(in) :: eigval2
+double precision, intent(inout) :: fixed_point(:)
+double precision, intent(in) :: radius
+integer, intent(in) :: ndim
+integer, intent(in) :: npoints
+double precision :: x0(2)
+double precision :: y0(ndim-2)
+integer :: i
+external :: dgemm
+do concurrent (i=1:npoints)
+points(:,i) = fixed_point + radius * &
+              (eigval1*dcos(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec1 &
+               + eigval2*dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2)
+!write(*,*) '**',i,points(:,i),i,'**'
+end do
+! Convert points to alt basis
+call dgemm('T','N',ndim,npoints,ndim,1.d0,q,ndim,points,ndim,0.d0,initial_points,ndim)
+! For each point, run it through the euler thingy
+do i=1,npoints
+write(*,*) "i",i,"out of",npoints
+x0 = initial_points(1:2,i)
+call forwardbackwardeuler(ndim,x0,y0)
+initial_points(3:,i) = y0
+enddo
+! Convert the points back from the alt basis
+call dgemm('N','N',ndim,npoints,ndim,1.d0,q,ndim,initial_points,ndim,0.d0,points,ndim)
+end subroutine set_initial_points2
+
+subroutine f_stable_alt_to_alt(ndim,npoints,points_alt,f_alt)
+use user_functions
+implicit none
+integer, intent(in) :: ndim
+integer, intent(in) :: npoints
+double precision, intent(inout) :: points_alt(:,:)
+double precision, intent(inout) :: f_alt(:,:)
+integer :: i
+external :: dgemm
+call dgemm('N','N',ndim,npoints,ndim,1.d0,q,ndim,points_alt,ndim,0.d0,initial_work1,ndim)
+do i=1,npoints
+call fcn ( ndim, initial_work1(:,i), initial_work2(:,i))
+end do
+call dgemm('T','N',ndim,npoints,ndim,1.d0,q,ndim,initial_work2,ndim,0.d0,f_alt,ndim)
+f_alt = -1.d0 * f_alt
+end subroutine f_stable_alt_to_alt
+
+subroutine forwardbackwardeuler(ndim,x0,y0)
+implicit none
+integer, intent(in) :: ndim
+double precision, intent(inout) :: x0(2)
+double precision, intent(inout) :: y0(ndim-2)
+integer :: m,i
+double precision :: tol
+integer :: max_iter
+tol = 1.d-4
+max_iter = 50
+contraction_points = 1.d0
+do i=1,int(time_max/h)
+    contraction_points(1:2,i) = contraction_points(1:2,i) * x0
+    contraction_points(3:,i) = contraction_points(3:,i) * 0.d0
+enddo
+contraction_force = 0.d0
+contraction_points_last = 0.d0
+contraction_force_last = 0.d0
+m = 1
+do while (((sum((contraction_points-contraction_points_last)**2))**0.5 .gt. tol) .and. (m .le. max_iter))
+    contraction_points_last(1:2,:) = contraction_points(1:2,:)
+    call f_stable_alt_to_alt(ndim,int(time_max/h),contraction_points,contraction_force)
+    do i=1,int(time_max/h - 1)
+        contraction_points(1:2,i+1) = contraction_points(1:2,i) + h * contraction_force(1:2,i)
+    enddo
+    contraction_points_last(3:,:) = contraction_points(3:,:)
+    call f_stable_alt_to_alt(ndim,int(time_max/h),contraction_points,contraction_force)
+    do i=int(time_max/h),2,-1
+        contraction_points(3:,i-1) = contraction_points(3:,i) + h * contraction_force(3:,i)
+    enddo
+    m = m + 1
+    write(*,*) "m",m
+    write(*,*) "y0",contraction_points(3:,1)
+enddo
+y0 = contraction_points(3:,1)
+end subroutine forwardbackwardeuler
+
+subroutine set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,ndim,npoints)
+implicit none
+double precision, intent(inout) :: eigvec1(:)
+double precision, intent(inout) :: eigvec2(:)
+double precision, intent(in) :: eigval1
+double precision, intent(in) :: eigval2
+double precision, intent(inout) :: fixed_point(:)
+double precision, intent(in) :: radius
+integer, intent(in) :: ndim
+integer, intent(in) :: npoints
+integer :: i
+if (initial_points_switch .eq. 1) then
+call set_initial_points1(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,ndim,npoints)
+endif
+if (initial_points_switch .eq. 2) then
+call set_initial_points2(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,ndim,npoints)
+endif
 end subroutine set_initial_points
 
 subroutine points_to_tangent(ndim,npoints)
@@ -190,7 +330,7 @@ double precision, intent(in) :: x(2*big+1)
 double precision, intent(inout) :: c(m+1,2*big+1)
 double precision :: c1,c2,c3,c4,c5
 integer :: i,n,mn,j,k
-n=2.d0*big+1
+n=2*big+1
 c = 0.d0
 c1=1.d0
 c4=x(1)-z
@@ -228,7 +368,7 @@ double precision, intent(in) :: x(2*big)
 double precision, intent(inout) :: c(m+1,2*big)
 double precision :: c1,c2,c3,c4,c5
 integer :: i,n,mn,j,k
-n=2.d0*big
+n=2*big
 c = 0.d0
 c1=1.d0
 c4=x(1)-z
@@ -606,7 +746,6 @@ subroutine find_forig(ndim,npoints)
 implicit none
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
-integer :: i
 call points_to_f(ndim,npoints)
 call find_sdiff(npoints)
 call find_s(npoints,sdiff,s)
@@ -745,6 +884,16 @@ implicit none
 !do concurrent (i=1:12)
 !write(*,*) '**',i,points(:,i),i,'**'
 !end do
+if (initial_points_switch .eq. 2) then
+deallocate(initial_work1)
+deallocate(initial_work2)
+deallocate(contraction_points)
+deallocate(contraction_force)
+deallocate(contraction_points_last)
+deallocate(contraction_force_last)
+endif
+deallocate(initial_points)
+deallocate(initial_f)
 deallocate(points)
 deallocate(big_points)
 deallocate(t)
