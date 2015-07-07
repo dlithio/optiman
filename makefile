@@ -124,6 +124,7 @@ endif
 
 clean_results:
 	rm -f eig* 
+	rm -f q_matrix
 	rm -f *.x
 	rm -f header
 	rm -f fixed_point
