@@ -99,9 +99,6 @@ do ringnum=2,saved_rings
             endif
             fix_trys = fix_trys + 1
         enddo
-        if (fix_trys .gt. 2) then
-            write(*,*) "fix_trys ",fix_trys
-        endif
         call accept_new_ring()
     enddo
     call write_output(ringnum,npoints,ndim)
