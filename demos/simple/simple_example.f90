@@ -25,6 +25,9 @@ double precision, intent(inout) :: x( 1: )
 double precision, intent(inout) :: a( 1: , 1: )
 double precision :: original_force(n),forward_state(n),forward_force(n)
 integer :: i
+! See the other examples for an approximate get_jac routine that will
+! work for any fcn you have. This is exact and allows for a slightly 
+! more accurate transformation matrix and eigenvectors
 a = 0.d0
 a(1,1) = 2.d0
 a(2,2) = 2.d0
