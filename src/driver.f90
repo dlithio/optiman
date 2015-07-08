@@ -105,7 +105,7 @@ do ringnum=2,saved_rings
         call accept_new_ring()
     enddo
     call write_output(ringnum,npoints,ndim)
-    write(*,*) dble(ringnum)/dble(saved_rings)*100.d0,"%"
+    call progress(ringnum,saved_rings,npoints) 
 enddo
 
 call deallocate_arrays()
@@ -114,3 +114,28 @@ close(218)
 close(219)
 
 end program driver
+
+subroutine progress(j,max_step,active_points)
+  implicit none
+  integer(kind=4)::j,k,max_step,num_stars,active_points
+  double precision :: percent_done
+  character(len=56)::bar="?????? active points, overall manifold ???% |          |"
+!?????? active points, overall manifold ???% |          |
+  percent_done = int(dble(j)/dble(max_step)*100.d0)
+  num_stars = floor(percent_done/10.d0)
+  write(unit=bar(1:6),fmt="(i6)") active_points
+  write(unit=bar(40:42),fmt="(i3)") int(percent_done)
+  do k=1, num_stars
+    bar(45+k:45+k)="*"
+  enddo
+!  write(*,*) bar
+  ! print the progress bar.
+!  write(unit=6,fmt="(a1,a17)",advance="no") char(13), bar
+write(unit=6,fmt="(a1,a56,$)") char(13), bar
+  if (num_stars/=10) then
+flush(unit=6)
+  else
+    write(unit=6,fmt=*)
+  endif
+  return
+end subroutine progress
