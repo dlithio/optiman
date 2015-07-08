@@ -169,8 +169,8 @@ double precision, intent(in) :: radius
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
 double precision :: initial_error(npoints)
-double precision :: x0(2)
-double precision :: y0(ndim-2,npoints)
+double precision :: y0(2)
+double precision :: x0(ndim-2,npoints)
 integer :: i
 external :: dgemm
 do concurrent (i=1:npoints)
@@ -189,16 +189,16 @@ call dgemm('T','N',ndim,npoints,ndim,1.d0,q,ndim,points,ndim,0.d0,initial_points
 do i=1,npoints
 initial_error(i) = dsin(points(1,i))+dsin(points(2,i))-points(3,i)
 write(*,*) "i",i,"out of",npoints
-x0 = initial_points(1:2,i)
-call forwardbackwardeuler(ndim,x0,y0(:,i))
-initial_points(3:,i) = y0(:,i)
+y0 = initial_points(1:2,i)
+call forwardbackwardeuler(ndim,y0,x0(:,i))
+initial_points(3:,i) = x0(:,i)
 enddo
 ! Convert the points back from the alt basis
 call dgemm('N','N',ndim,npoints,ndim,1.d0,q,ndim,initial_points,ndim,0.d0,points,ndim)
 write(*,*) "second error"
 do i=1,npoints
 write(*,*) i,dsin(points(1,i))+dsin(points(2,i))-points(3,i)
-initial_points(3:,i) = -y0(:,i)
+!initial_points(3:,i) = -y0(:,i)
 enddo
 !! Convert the points back from the alt basis
 !call dgemm('N','N',ndim,npoints,ndim,1.d0,q,ndim,initial_points,ndim,0.d0,points,ndim)
@@ -208,7 +208,7 @@ enddo
 !enddo
 end subroutine set_initial_points2
 
-subroutine f_stable_alt_to_alt(ndim,npoints,points_alt,f_alt)
+subroutine f_alt_to_alt(ndim,npoints,points_alt,f_alt)
 use user_functions
 implicit none
 integer, intent(in) :: ndim
@@ -221,15 +221,14 @@ call dgemm('N','N',ndim,npoints,ndim,1.d0,q,ndim,points_alt,ndim,0.d0,initial_wo
 do i=1,npoints
 call fcn ( ndim, initial_work1(:,i), initial_work2(:,i))
 end do
-initial_work2 = -1.d0*initial_work2
 call dgemm('T','N',ndim,npoints,ndim,1.d0,q,ndim,initial_work2,ndim,0.d0,f_alt,ndim)
-end subroutine f_stable_alt_to_alt
+end subroutine f_alt_to_alt
 
-subroutine forwardbackwardeuler(ndim,x0,y0)
+subroutine forwardbackwardeuler(ndim,y0,x0)
 implicit none
 integer, intent(in) :: ndim
-double precision, intent(inout) :: x0(2)
-double precision, intent(inout) :: y0(ndim-2)
+double precision, intent(inout) :: y0(2)
+double precision, intent(inout) :: x0(ndim-2)
 double precision :: rel_diff
 double precision :: my_max
 integer :: m,i
@@ -239,7 +238,7 @@ tol = 1.d-12
 max_iter = 50
 contraction_points = 1.d0
 do i=1,int(time_max/h)
-    contraction_points(1:2,i) = contraction_points(1:2,i) * x0
+    contraction_points(1:2,i) = contraction_points(1:2,i) * y0
     contraction_points(3:,i) = contraction_points(3:,i) * 0.d0
 enddo
 contraction_force = 0.d0
@@ -248,23 +247,23 @@ contraction_force_last = 0.d0
 m = 1
 rel_diff = 1.d0
 do while ((rel_diff .gt. tol) .and. (m .le. max_iter))
-    contraction_points_last(1:2,:) = contraction_points(1:2,:)
-    call f_stable_alt_to_alt(ndim,int(time_max/h),contraction_points,contraction_force)
-    do i=1,int(time_max/h - 1)
-        contraction_points(1:2,i+1) = contraction_points(1:2,i) + h * contraction_force(1:2,i)
-    enddo
     contraction_points_last(3:,:) = contraction_points(3:,:)
-    call f_stable_alt_to_alt(ndim,int(time_max/h),contraction_points,contraction_force)
+    call f_alt_to_alt(ndim,int(time_max/h),contraction_points,contraction_force)
+    do i=1,int(time_max/h - 1)
+        contraction_points(3:,i+1) = contraction_points(3:,i) + h * contraction_force(3:,i)
+    enddo
+    contraction_points_last(1:2,:) = contraction_points(1:2,:)
+    call f_alt_to_alt(ndim,int(time_max/h),contraction_points,contraction_force)
     do i=int(time_max/h),2,-1
-        contraction_points(3:,i-1) = contraction_points(3:,i) - h * contraction_force(3:,i)
+        contraction_points(1:2,i-1) = contraction_points(1:2,i) - h * contraction_force(1:2,i)
     enddo
     my_max = max(maxval(dabs(contraction_points)),maxval(dabs(contraction_points_last)))
     rel_diff = sum(dabs(contraction_points-contraction_points_last))/my_max
     m = m + 1
     write(*,*) "m",m
-    write(*,*) "y0",contraction_points(3:,1)
+    write(*,*) "x0",contraction_points(3:,int(time_max/h))
 enddo
-y0 = contraction_points(3:,1)
+x0 = contraction_points(3:,int(time_max/h))
 end subroutine forwardbackwardeuler
 
 subroutine set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,ndim,npoints)
