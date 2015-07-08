@@ -27,7 +27,7 @@
 *.out
 *.app
 
-#other
+#outputs of fixed_point.x and optiman.x
 output
 fdot
 t_angle
@@ -37,3 +37,14 @@ eigval2
 eigvec1
 eigvec2
 fixed_point
+q_matrix
+interp_info
+
+# input files
+/initial_guess
+/par
+/*.f90
+/*_input
+/old_par
+/*_key
+/*_projections
