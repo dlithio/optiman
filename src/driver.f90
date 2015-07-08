@@ -105,6 +105,7 @@ do ringnum=2,saved_rings
     call progress(ringnum,saved_rings,npoints) 
 enddo
 
+call write_interp_info()
 call deallocate_arrays()
 close(217)
 close(218)

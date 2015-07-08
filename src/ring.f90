@@ -7,6 +7,8 @@ integer, private :: sdiff_switch
 integer, private :: f_switch
 integer, private :: order_of_accuracy
 integer, private :: initial_points_switch
+integer, private :: total_interp
+integer, private :: total_remove
 integer :: big
 double precision, private, parameter :: time_max = 1.0d0
 double precision, private, parameter :: h = .000001d0
@@ -70,6 +72,8 @@ open(unit=300,file="q_matrix",access='stream')
 allocate(q(ndim,ndim))
 read(300) q
 close(300)
+total_interp = 0
+total_remove = 0
 end subroutine init_ring_mod
 
 
@@ -591,6 +595,7 @@ if (any(dist_diff .gt. max_dist)) then
     deallocate(points_new)
     deallocate(position_vec_new)
     new_npoints = npointsold + count(dist_diff .gt. max_dist)
+    total_interp = total_interp + (new_npoints - npointsold)
     allocate(points_new(ndim,new_npoints))
     allocate(position_vec_new(new_npoints))
     new_point = 1
@@ -624,6 +629,7 @@ if (any(dist_diff .lt. min_dist) .and. (.not. made_change)) then
     deallocate(points_new)
     deallocate(position_vec_new)
     new_npoints = npointsold - count(dist_diff .lt. min_dist)
+    total_remove = total_remove + (npointsold - new_npoints)
     allocate(points_new(ndim,new_npoints))
     allocate(position_vec_new(new_npoints))
     new_point = 1
@@ -899,6 +905,16 @@ write(218) dble(ringnum),f_dot_t(i)
 write(219) dble(ringnum),sum(t(:,i)*normct(:,i))**0.5
 enddo
 end subroutine write_output
+
+subroutine write_interp_info()
+implicit none
+open(unit=501,file="interp_info")
+write(501,*) "The total number of interpolations were"
+write(501,*) total_interp
+write(501,*) "The total number of removals were"
+write(501,*) total_remove
+close(501)
+end subroutine write_interp_info
 
 subroutine deallocate_arrays()
 implicit none

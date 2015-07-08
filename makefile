@@ -103,6 +103,7 @@ ifdef folder
 	@mv *_input results/$(folder)_$(timestamp)/
 	@mv fdot results/$(folder)_$(timestamp)/ 2>/dev/null
 	@mv t_angle results/$(folder)_$(timestamp)/
+	@mv interp_info results/$(folder)_$(timestamp)/
 ifneq ("$(wildcard old_par)","")
 	@mv old_par results/$(folder)_$(timestamp)/
 	@mv auto_ndim_key results/$(folder)_$(timestamp)/
@@ -142,6 +143,7 @@ clean_results:
 	rm -f kx_projections 
 	rm -f ky_projections 
 	rm -f q_matrix 
+	rm -f interp_info
 
 clean:
 	rm -f *.x
