@@ -79,10 +79,20 @@ class Manifold(object):
         #mesh.point_data.scalars.name = 't_angle'
         #self.view(mesh)
         self.coloring = self.time
+        self.q = self.read_array('q_matrix',np.float64)
+        self.q.shape = (ndim,ndim)
+        # We're not taking the transpose of q in this next line, just
+        # correcting for difference in memory storage between fortran
+        # and python. After this next line, self.q is simply the
+        # q_matrix
+        self.q = self.q.transpose()
     
     def draw_manifold(self,dims):
         mlab.triangular_mesh(self.points[:,dims[0]], self.points[:,dims[1]], self.points[:,dims[2]], self.triangles, scalars=self.coloring)
         
+    def transform(self):
+        self.points = np.dot(self.q.transpose(),self.points)
+    
     def plot_fixedpoints(self,file_names,dims):
         self.fixedpoints = np.zeros((len(file_names),self.ndim))
         for rownum,fn in enumerate(file_names):
