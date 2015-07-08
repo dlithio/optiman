@@ -179,27 +179,32 @@ points(:,i) = fixed_point + radius * &
                + eigval2*dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2)
 !write(*,*) '**',i,points(:,i),i,'**'
 end do
-write(*,*) "initial error"
-do i=1,npoints
-write(*,*) i,dsin(points(1,i))+dsin(points(2,i))-points(3,i)
-enddo
+!write(*,*) "initial error"
+!do i=1,npoints
+!write(*,*) i,dsin(points(1,i))+dsin(points(2,i))-points(3,i)
+!enddo
 ! Convert points to alt basis
+write(6,*) ""
+write(6,*) "We run the contraction mapping to find improved initial points"
 call dgemm('T','N',ndim,npoints,ndim,1.d0,q,ndim,points,ndim,0.d0,initial_points,ndim)
 ! For each point, run it through the euler thingy
 do i=1,npoints
-initial_error(i) = dsin(points(1,i))+dsin(points(2,i))-points(3,i)
-write(*,*) "i",i,"out of",npoints
+! initial_error(i) = dsin(points(1,i))+dsin(points(2,i))-points(3,i)
+! write(*,*) "i",i,"out of",npoints
 y0 = initial_points(1:2,i)
-call forwardbackwardeuler(ndim,y0,x0(:,i))
+call forwardbackwardeuler(ndim,y0,x0(:,i),i,npoints)
 initial_points(3:,i) = x0(:,i)
 enddo
 ! Convert the points back from the alt basis
 call dgemm('N','N',ndim,npoints,ndim,1.d0,q,ndim,initial_points,ndim,0.d0,points,ndim)
-write(*,*) "second error"
-do i=1,npoints
-write(*,*) i,dsin(points(1,i))+dsin(points(2,i))-points(3,i)
-!initial_points(3:,i) = -y0(:,i)
-enddo
+write(6,*) ""
+write(6,*) ""
+write(6,*) "Now we find the manifold."
+!write(*,*) "second error"
+!do i=1,npoints
+!write(*,*) i,dsin(points(1,i))+dsin(points(2,i))-points(3,i)
+!!initial_points(3:,i) = -y0(:,i)
+!enddo
 !! Convert the points back from the alt basis
 !call dgemm('N','N',ndim,npoints,ndim,1.d0,q,ndim,initial_points,ndim,0.d0,points,ndim)
 !write(*,*) "third error"
@@ -224,18 +229,20 @@ end do
 call dgemm('T','N',ndim,npoints,ndim,1.d0,q,ndim,initial_work2,ndim,0.d0,f_alt,ndim)
 end subroutine f_alt_to_alt
 
-subroutine forwardbackwardeuler(ndim,y0,x0)
+subroutine forwardbackwardeuler(ndim,y0,x0,point_num,total_points)
 implicit none
 integer, intent(in) :: ndim
 double precision, intent(inout) :: y0(2)
 double precision, intent(inout) :: x0(ndim-2)
+integer, intent(in) :: point_num
+integer, intent(in) :: total_points
 double precision :: rel_diff
 double precision :: my_max
 integer :: m,i
-double precision :: tol
+double precision :: tol,stable_norm
 integer :: max_iter
 tol = 1.d-12
-max_iter = 50
+max_iter = 10
 contraction_points = 1.d0
 do i=1,int(time_max/h)
     contraction_points(1:2,i) = contraction_points(1:2,i) * y0
@@ -259,9 +266,9 @@ do while ((rel_diff .gt. tol) .and. (m .le. max_iter))
     enddo
     my_max = max(maxval(dabs(contraction_points)),maxval(dabs(contraction_points_last)))
     rel_diff = sum(dabs(contraction_points-contraction_points_last))/my_max
+    stable_norm = sum(contraction_points(3:,int(time_max/h))*contraction_points(3:,int(time_max/h)))**0.5
+    call progressring(point_num,total_points,m,max_iter,stable_norm)
     m = m + 1
-    write(*,*) "m",m
-    write(*,*) "x0",contraction_points(3:,int(time_max/h))
 enddo
 x0 = contraction_points(3:,int(time_max/h))
 end subroutine forwardbackwardeuler
@@ -954,5 +961,20 @@ deallocate(position_vec)
 deallocate(f_change_scalar)
 deallocate(f_change_scalart)
 end subroutine deallocate_arrays
+
+subroutine progressring(point,total_points,it,total_it,current_val)
+  implicit none
+  integer(kind=4)::j,k,max_step,num_stars,active_points,point,total_points,it,total_it
+  double precision :: current_val
+  character(len=95)::bar="finding ???? of ???? start points, iteration ??? of max ???, stable norm of ???????????????????"
+!finding ???? of ???? start points, iteration ??? of max ???, stable norm of ???????????????????                  
+  write(unit=bar(9:12),fmt="(i4)") point
+  write(unit=bar(17:20),fmt="(i4)") total_points
+  write(unit=bar(46:48),fmt="(i3)") it
+    write(unit=bar(57:59),fmt="(i3)") total_it
+  write(unit=bar(77:95),fmt="(d19.13)") current_val
+write(unit=6,fmt="(a1,a95,$)") char(13), bar
+  return
+end subroutine progressring
 
 end module ring
