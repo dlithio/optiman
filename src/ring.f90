@@ -242,7 +242,7 @@ integer :: m,i
 double precision :: tol,stable_norm
 integer :: max_iter
 tol = 1.d-12
-max_iter = 10
+max_iter = 50
 contraction_points = 1.d0
 do i=1,int(time_max/h)
     contraction_points(1:2,i) = contraction_points(1:2,i) * y0
