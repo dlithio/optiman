@@ -143,17 +143,26 @@ subroutine set_initial_points1(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radiu
 implicit none
 double precision, intent(inout) :: eigvec1(:)
 double precision, intent(inout) :: eigvec2(:)
-double precision, intent(in) :: eigval1
-double precision, intent(in) :: eigval2
+complex*16, intent(in) :: eigval1
+complex*16, intent(in) :: eigval2
 double precision, intent(inout) :: fixed_point(:)
 double precision, intent(in) :: radius
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
 integer :: i
+double precision :: eigval1real
+double precision :: eigval2real
+if ((imag(eigval1)/real(eigval1) .gt. 1.d-14) .or. (imag(eigval1)/real(eigval1) .gt. 1.d-14)) then
+    eigval1real = 1.d0
+    eigval2real = 1.d0
+else
+    eigval1real = real(eigval1)
+    eigval2real = real(eigval2)
+endif
 do concurrent (i=1:npoints)
 points(:,i) = fixed_point + radius * &
-              (eigval1*dcos(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec1 &
-               + eigval2*dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2)
+              (dcos(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec1/eigval1real &
+               + dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2/eigval2real)
 !write(*,*) '**',i,points(:,i),i,'**'
 end do
 end subroutine set_initial_points1
@@ -162,8 +171,8 @@ subroutine set_initial_points2(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radiu
 implicit none
 double precision, intent(inout) :: eigvec1(:)
 double precision, intent(inout) :: eigvec2(:)
-double precision, intent(in) :: eigval1
-double precision, intent(in) :: eigval2
+complex*16, intent(in) :: eigval1
+complex*16, intent(in) :: eigval2
 double precision, intent(inout) :: fixed_point(:)
 double precision, intent(in) :: radius
 integer, intent(in) :: ndim
@@ -173,10 +182,19 @@ double precision :: y0(2)
 double precision :: x0(ndim-2,npoints)
 integer :: i
 external :: dgemm
+double precision :: eigval1real
+double precision :: eigval2real
+if ((imag(eigval1)/real(eigval1) .gt. 1.d-14) .or. (imag(eigval1)/real(eigval1) .gt. 1.d-14)) then
+    eigval1real = 1.d0
+    eigval2real = 1.d0
+else
+    eigval1real = real(eigval1)
+    eigval2real = real(eigval2)
+endif
 do concurrent (i=1:npoints)
 points(:,i) = fixed_point + radius * &
-              (eigval1*dcos(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec1 &
-               + eigval2*dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2)
+              (dcos(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec1/eigval1real &
+               + dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2/eigval2real)
 !write(*,*) '**',i,points(:,i),i,'**'
 end do
 !write(*,*) "initial error"
@@ -277,13 +295,15 @@ subroutine set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius
 implicit none
 double precision, intent(inout) :: eigvec1(:)
 double precision, intent(inout) :: eigvec2(:)
-double precision, intent(in) :: eigval1
-double precision, intent(in) :: eigval2
+complex*16, intent(in) :: eigval1
+complex*16, intent(in) :: eigval2
 double precision, intent(inout) :: fixed_point(:)
 double precision, intent(in) :: radius
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
 integer :: i
+eigvec1 = q(:,1)
+eigvec2 = q(:,2)
 if (initial_points_switch .eq. 1) then
 call set_initial_points1(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,ndim,npoints)
 endif

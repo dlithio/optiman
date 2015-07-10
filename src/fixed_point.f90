@@ -133,13 +133,13 @@ do i=1,n
     end if
 enddo
 
+user1 = 1
+user2 = 2
 write(*,*) ""
-write(*,*) "Select the value of the first eigenvalue/vector you would like"
-write(*,*) "to use"
-read(*,*) user1
-write(*,*) "Select the value of the first eigenvalue/vector you would like"
-write(*,*) "to use"
-read(*,*) user2
+write(*,*) "Select the value of the first eigenvalue/vector that will be used"
+write(*,*) "is i=",user1
+write(*,*) "Select the value of the second eigenvalue/vector that will be used"
+write(*,*) "is i=",user2
 open(100,file="eigval1")
 write(100,*) wr(user1)
 write(100,*) wi(user1)

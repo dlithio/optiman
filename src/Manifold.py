@@ -91,7 +91,7 @@ class Manifold(object):
         mlab.triangular_mesh(self.points[:,dims[0]], self.points[:,dims[1]], self.points[:,dims[2]], self.triangles, scalars=self.coloring)
         
     def transform(self):
-        self.points = np.dot(self.q.transpose(),self.points)
+        self.points = np.dot(self.q.transpose(),self.points.transpose()).transpose()
     
     def plot_fixedpoints(self,file_names,dims):
         self.fixedpoints = np.zeros((len(file_names),self.ndim))

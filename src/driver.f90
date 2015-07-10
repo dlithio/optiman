@@ -13,8 +13,9 @@ integer :: fix_trys
 double precision, allocatable :: eigvec1(:)
 double precision, allocatable :: eigvec2(:)
 double precision :: par(36)
-double precision :: eigval1
-double precision :: eigval2
+complex*16 :: eigval1
+complex*16 :: eigval2
+double precision :: real_part,imag_part
 double precision, allocatable :: fixed_point(:)
 double precision :: radius
 double precision :: dt
@@ -56,6 +57,16 @@ do i=1,ndim
 read(100,*) eigvec2(i)
 enddo
 close(100)
+open(100,file="eigval1")
+read(100,*) real_part
+read(100,*) imag_part
+eigval1 = complex(real_part,imag_part)
+close(100)
+open(100,file="eigval2")
+read(100,*) real_part
+read(100,*) imag_part
+eigval2 = complex(real_part,imag_part)
+close(100)
 allocate(fixed_point(ndim))
 open(100,file="fixed_point")
 do i=1,ndim
@@ -63,8 +74,6 @@ read(100,*) fixed_point(i)
 enddo
 close(100)
 
-eigval1 = 1.d0
-eigval2 = 1.d0
 call set_initial_points(eigvec1,eigvec2,eigval1,eigval2,fixed_point,radius,ndim,npoints)
 
 !call find_f(ndim,npoints)
