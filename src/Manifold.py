@@ -90,6 +90,9 @@ class Manifold(object):
     def draw_manifold(self,dims):
         mlab.triangular_mesh(self.points[:,dims[0]], self.points[:,dims[1]], self.points[:,dims[2]], self.triangles, scalars=self.coloring)
         
+    def draw_axes(self,xlab,ylab,zlab):
+        mlab.axes(xlabel=xlab,ylabel=ylab,zlabel=zlab)
+        
     def transform(self):
         self.points = np.dot(self.q.transpose(),self.points.transpose()).transpose()
     
