@@ -84,8 +84,10 @@ double precision, intent(in) :: distance_percentagefar
 double precision, intent(in) :: distance_percentageclose
 double precision, intent(in) :: radius
 integer, intent(in) :: npoints
-max_dist = 2*pi*radius/dble(npoints)*distance_percentagefar
-min_dist = 2*pi*radius/dble(npoints)*distance_percentageclose
+double precision :: distances(npoints)
+call find_distance(points,distances,npoints)
+max_dist = maxval(distances)*distance_percentagefar
+min_dist = minval(distances)*distance_percentageclose
 !write(*,*) max_dist
 end subroutine set_when_to_adapt
 
