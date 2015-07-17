@@ -87,7 +87,7 @@ nse_fixed_point.x: $(NSEOBJS) $(ODIR)/$(user_fcn).o $(FPOBJS)
 nse_optiman.x: $(NSEOBJS) $(ODIR)/$(user_fcn).o $(OPTOBJS)
 	$(FC) $(FFLAGS) -o nse_optiman.x $^ -L$(blas_lib_dir) $(optiman_libs)
 	
-timestamp=$(shell date +"%y%m%d%H%M%S")
+timestamp:=$(shell /bin/date +"%y%m%d%H%M%S")
 store_results:
 ifdef folder
 	@mkdir results/$(folder)_$(timestamp)
