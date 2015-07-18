@@ -154,7 +154,7 @@ integer, intent(in) :: npoints
 integer :: i
 double precision :: eigval1real
 double precision :: eigval2real
-if ((imag(eigval1)/real(eigval1) .gt. 1.d-14) .or. (imag(eigval1)/real(eigval1) .gt. 1.d-14)) then
+if ((imag(eigval1)/real(eigval1) .gt. 1.d-14) .or. (imag(eigval2)/real(eigval2) .gt. 1.d-14)) then
     eigval1real = 1.d0
     eigval2real = 1.d0
 else
@@ -163,8 +163,8 @@ else
 endif
 do concurrent (i=1:npoints)
 points(:,i) = fixed_point + radius * &
-              (dcos(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec1/eigval1real &
-               + dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2/eigval2real)
+              (dcos(dble(i-1)/dble(npoints)*2.d0*pi)*q(:,1)/eigval1real &
+               + dsin(dble(i-1)/dble(npoints)*2.d0*pi)*q(:,2)/eigval2real)
 !write(*,*) '**',i,points(:,i),i,'**'
 end do
 end subroutine set_initial_points1
@@ -186,7 +186,7 @@ integer :: i
 external :: dgemm
 double precision :: eigval1real
 double precision :: eigval2real
-if ((imag(eigval1)/real(eigval1) .gt. 1.d-14) .or. (imag(eigval1)/real(eigval1) .gt. 1.d-14)) then
+if ((imag(eigval1)/real(eigval1) .gt. 1.d-14) .or. (imag(eigval2)/real(eigval2) .gt. 1.d-14)) then
     eigval1real = 1.d0
     eigval2real = 1.d0
 else
@@ -195,8 +195,8 @@ else
 endif
 do concurrent (i=1:npoints)
 points(:,i) = fixed_point + radius * &
-              (dcos(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec1/eigval1real &
-               + dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2/eigval2real)
+              (dcos(dble(i-1)/dble(npoints)*2.d0*pi)*q(:,1)/eigval1real &
+               + dsin(dble(i-1)/dble(npoints)*2.d0*pi)*q(:,2)/eigval2real)
 !write(*,*) '**',i,points(:,i),i,'**'
 end do
 !write(*,*) "initial error"
