@@ -86,10 +86,17 @@ class Manifold(object):
         # and python. After this next line, self.q is simply the
         # q_matrix
         self.q = self.q.transpose()
+        self.start_points = start_points
+        self.end_points = end_points
     
     def draw_manifold(self,dims):
         mlab.triangular_mesh(self.points[:,dims[0]], self.points[:,dims[1]], self.points[:,dims[2]], self.triangles, scalars=self.coloring)
         
+    def draw_manifold_lines(self,dims):
+        for start_point,end_point in zip(self.start_points,self.end_points):
+            end_point = end_point + 1
+            mlab.plot3d(self.points[start_point:end_point,dims[0]], self.points[start_point:end_point,dims[1]], self.points[start_point:end_point,dims[2]],self.coloring[start_point:end_point], colormap='Greens', vmin=(self.coloring.min()-100), vmax=self.coloring.max(),tube_radius=.001)
+    
     def draw_axes(self,xlab,ylab,zlab):
         mlab.axes(xlabel=xlab,ylabel=ylab,zlabel=zlab)
         
