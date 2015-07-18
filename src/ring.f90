@@ -9,6 +9,7 @@ integer, private :: order_of_accuracy
 integer, private :: initial_points_switch
 integer, private :: total_interp
 integer, private :: total_remove
+integer, private :: tstep_switch
 integer :: big
 double precision, private, parameter :: time_max = 1.0d0
 double precision, private, parameter :: h = .000001d0
@@ -45,15 +46,21 @@ double precision, allocatable, private :: position_vec_new(:)
 double precision, allocatable, private :: f_change_scalar(:)
 double precision, allocatable, private :: f_change_scalart(:)
 double precision, allocatable, private :: q(:,:)
+double precision, allocatable, private :: rk_points(:,:)
+double precision, allocatable, private :: rk_k1(:,:)
+double precision, allocatable, private :: rk_k2(:,:)
+double precision, allocatable, private :: rk_k3(:,:)
+double precision, allocatable, private :: rk_k4(:,:)
 logical, private :: first_run = .TRUE.
 contains
 
-subroutine init_ring_mod(sdiff_switch_input,f_switch_input,order_of_accuracy_input,initial_points_switch_input,ndim,npoints)
+subroutine init_ring_mod(sdiff_switch_input,f_switch_input,order_of_accuracy_input,initial_points_switch_input,tstep_switch_input,ndim,npoints)
 implicit none
 integer, intent(in) :: sdiff_switch_input
 integer, intent(in) :: f_switch_input
 integer, intent(in) :: order_of_accuracy_input
 integer, intent(in) :: initial_points_switch_input
+integer, intent(in) :: tstep_switch_input
 integer, intent(in) :: ndim
 integer, intent(in) :: npoints
 sdiff_switch=sdiff_switch_input
@@ -61,6 +68,7 @@ f_switch=f_switch_input
 order_of_accuracy=order_of_accuracy_input
 initial_points_switch = initial_points_switch_input
 big = order_of_accuracy
+tstep_switch = tstep_switch_input
 call system( 'rm -f output' )
 call system( 'rm -f fdot' )
 call system( 'rm -f t_angle' )
@@ -131,6 +139,11 @@ allocate(first_integral(npoints))
 allocate(second_integral(npoints))
 allocate(phi(npoints))
 allocate(position_vec(npoints))
+allocate(rk_points(ndim,npoints))
+allocate(rk_k1(ndim,npoints))
+allocate(rk_k2(ndim,npoints))
+allocate(rk_k3(ndim,npoints))
+allocate(rk_k4(ndim,npoints))
 if (first_run) then 
 allocate(position_vec_new(npoints))
 endif
@@ -154,7 +167,7 @@ integer, intent(in) :: npoints
 integer :: i
 double precision :: eigval1real
 double precision :: eigval2real
-if ((imag(eigval1)/real(eigval1) .gt. 1.d-14) .or. (imag(eigval2)/real(eigval2) .gt. 1.d-14)) then
+if ((abs(imag(eigval1)/real(eigval1)) .gt. 1.d-14) .or. (abs(imag(eigval2)/real(eigval2)) .gt. 1.d-14)) then
     eigval1real = 1.d0
     eigval2real = 1.d0
 else
@@ -163,8 +176,8 @@ else
 endif
 do concurrent (i=1:npoints)
 points(:,i) = fixed_point + radius * &
-              (dcos(dble(i-1)/dble(npoints)*2.d0*pi)*q(:,1)/eigval1real &
-               + dsin(dble(i-1)/dble(npoints)*2.d0*pi)*q(:,2)/eigval2real)
+              (dcos(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec1/eigval1real &
+               + dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2/eigval2real)
 !write(*,*) '**',i,points(:,i),i,'**'
 end do
 end subroutine set_initial_points1
@@ -186,7 +199,7 @@ integer :: i
 external :: dgemm
 double precision :: eigval1real
 double precision :: eigval2real
-if ((imag(eigval1)/real(eigval1) .gt. 1.d-14) .or. (imag(eigval2)/real(eigval2) .gt. 1.d-14)) then
+if ((abs(imag(eigval1)/real(eigval1)) .gt. 1.d-14) .or. (abs(imag(eigval2)/real(eigval2)) .gt. 1.d-14)) then
     eigval1real = 1.d0
     eigval2real = 1.d0
 else
@@ -195,8 +208,8 @@ else
 endif
 do concurrent (i=1:npoints)
 points(:,i) = fixed_point + radius * &
-              (dcos(dble(i-1)/dble(npoints)*2.d0*pi)*q(:,1)/eigval1real &
-               + dsin(dble(i-1)/dble(npoints)*2.d0*pi)*q(:,2)/eigval2real)
+              (dcos(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec1/eigval1real &
+               + dsin(dble(i-1)/dble(npoints)*2.d0*pi)*eigvec2/eigval2real)
 !write(*,*) '**',i,points(:,i),i,'**'
 end do
 !write(*,*) "initial error"
@@ -909,10 +922,37 @@ do i=1,npoints
 enddo
 end subroutine find_fideal
 
-subroutine timestep(dt)
+subroutine timestep(ndim,npoints,dt)
 implicit none
 double precision, intent(in) :: dt
+integer, intent(in) :: ndim
+integer, intent(in) :: npoints
+if (tstep_switch .eq. 1) then
+call find_f(ndim,npoints)
 points_new = points + dt*fideal
+endif
+if (tstep_switch .eq. 2) then
+rk_points = points
+! Find k1
+call find_forig(ndim,npoints)
+rk_k1 = fideal
+! Find k2
+points = rk_points + dt/2.d0*rk_k1
+call find_forig(ndim,npoints)
+rk_k2 = fideal
+! find k3
+points = rk_points + dt/2.d0*rk_k2
+call find_forig(ndim,npoints)
+rk_k3 = fideal
+! find k4
+points = rk_points + dt*rk_k3
+call find_forig(ndim,npoints)
+rk_k4 = fideal
+! Find newpoints
+points_new = rk_points + dt/6.d0*(rk_k1 + 2.d0*rk_k2 + 2.d0*rk_k3 + rk_k4)
+! Set old points back
+points = rk_points
+endif
 end subroutine timestep
 
 subroutine write_output(ringnum,npoints,ndim)
@@ -982,6 +1022,11 @@ deallocate(phi)
 deallocate(position_vec)
 deallocate(f_change_scalar)
 deallocate(f_change_scalart)
+deallocate(rk_points)
+deallocate(rk_k1)
+deallocate(rk_k2)
+deallocate(rk_k3)
+deallocate(rk_k4)
 end subroutine deallocate_arrays
 
 subroutine progressring(point,total_points,it,total_it,current_val)

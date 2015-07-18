@@ -24,8 +24,9 @@ double precision :: distance_percentageclose
 integer :: steps_per_save,stepnum
 integer :: saved_rings,ringnum
 integer :: initial_points_switch
+integer :: tstep_switch
 logical :: something_wrong
-namelist /optiman_input/ npoints_start,radius,dt,steps_per_save,saved_rings,distance_percentagefar,distance_percentageclose,f_switch,order_of_accuracy,initial_points_switch
+namelist /optiman_input/ npoints_start,radius,dt,steps_per_save,saved_rings,distance_percentagefar,distance_percentageclose,f_switch,order_of_accuracy,initial_points_switch,tstep_switch
 
 open(100,file="optiman_input",delim='APOSTROPHE')
 read(100,nml=optiman_input)
@@ -43,7 +44,7 @@ ndim = int(par(36))
 call setup(par)
 
 npoints = npoints_start
-call init_ring_mod(sdiff_switch,f_switch,order_of_accuracy,initial_points_switch,ndim,npoints)
+call init_ring_mod(sdiff_switch,f_switch,order_of_accuracy,initial_points_switch,tstep_switch,ndim,npoints)
 
 allocate(eigvec1(ndim))
 allocate(eigvec2(ndim))
@@ -93,14 +94,12 @@ call write_output(ringnum,npoints,ndim)
 
 do ringnum=2,saved_rings
     do stepnum=1,steps_per_save
-        call find_f(ndim,npoints)
-        call timestep(dt)
+        call timestep(ndim,npoints,dt)
         call check_new_ring(npoints,something_wrong)
         fix_trys = 0
         do while (something_wrong)
             call fix_old_ring(ndim,npoints)
-            call find_f(ndim,npoints)
-            call timestep(dt) 
+            call timestep(ndim,npoints,dt) 
             call check_new_ring(npoints,something_wrong)
             if (npoints .gt. 100000) then
                 write(*,*) "too many points ",npoints
