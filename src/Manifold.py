@@ -88,6 +88,7 @@ class Manifold(object):
         self.q = self.q.transpose()
         self.start_points = start_points
         self.end_points = end_points
+        self.point_connections = bottom_triangles[:,:2]
     
     def draw_manifold(self,dims):
         mlab.triangular_mesh(self.points[:,dims[0]], self.points[:,dims[1]], self.points[:,dims[2]], self.triangles, scalars=self.coloring)
@@ -164,3 +165,15 @@ class Manifold(object):
         nbrs = NearestNeighbors(n_neighbors=1).fit(top_ring)
         distances, indices = nbrs.kneighbors(bottom_ring)
         return indices[:,0]  + global_top_ring_start_index
+        
+    def view_lines(self,dims):
+        # Create the points
+        src = mlab.pipeline.scalar_scatter(self.points[:,dims[0]], self.points[:,dims[1]], self.points[:,dims[2]], self.coloring)
+        # Connect them
+        src.mlab_source.dataset.lines = self.point_connections
+        # The stripper filter cleans up connected lines
+        lines = mlab.pipeline.stripper(src)
+        # Finally, display the set of lines
+        mlab.pipeline.surface(lines, colormap='Accent', line_width=1, opacity=.4)
+        # And choose a nice view
+        mlab.show()
