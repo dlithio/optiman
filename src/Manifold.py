@@ -89,6 +89,19 @@ class Manifold(object):
         self.start_points = start_points
         self.end_points = end_points
         self.point_connections = bottom_triangles[:,:2]
+        # The following will only work when there is no adapting or removing
+        bottom_triangles = np.zeros((start_points[-1],3),dtype=np.int)
+        numpoints = int(rings.shape[0]/(rings[:,0].max()))
+        numrings = int(rings.shape[0]/numpoints)
+        self.trajconnections = np.zeros((numpoints*(numrings-1),2))
+        globalrow = 0
+        for pointnum in range(numpoints):
+            for ringnum in range(numrings-1):
+                self.trajconnections[globalrow,0] = pointnum + ringnum*numpoints
+                self.trajconnections[globalrow,1] = pointnum + (ringnum+1)*numpoints
+                globalrow += 1
+        self.numrings = numrings
+        self.numpoints = numpoints
     
     def draw_manifold(self,dims):
         mlab.triangular_mesh(self.points[:,dims[0]], self.points[:,dims[1]], self.points[:,dims[2]], self.triangles, scalars=self.coloring)
@@ -171,6 +184,18 @@ class Manifold(object):
         src = mlab.pipeline.scalar_scatter(self.points[:,dims[0]], self.points[:,dims[1]], self.points[:,dims[2]], self.coloring)
         # Connect them
         src.mlab_source.dataset.lines = self.point_connections
+        # The stripper filter cleans up connected lines
+        lines = mlab.pipeline.stripper(src)
+        # Finally, display the set of lines
+        mlab.pipeline.surface(lines, colormap='Accent', line_width=1, opacity=.4)
+        # And choose a nice view
+        mlab.show()
+        
+    def view_trajectories(self,dims):
+        # Create the points
+        src = mlab.pipeline.scalar_scatter(self.points[:,dims[0]], self.points[:,dims[1]], self.points[:,dims[2]], self.coloring)
+        # Connect them
+        src.mlab_source.dataset.lines = self.trajconnections
         # The stripper filter cleans up connected lines
         lines = mlab.pipeline.stripper(src)
         # Finally, display the set of lines
