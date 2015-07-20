@@ -80,12 +80,24 @@ fixed_point.x: $(ODIR)/$(user_fcn).o $(FPOBJS)
 
 optiman.x: $(ODIR)/$(user_fcn).o $(OPTOBJS)
 	$(FC) $(FFLAGS) -o optiman.x $^ -L$(blas_lib_dir) $(optiman_libs)
+	@rm -f version_info
+	@touch version_info
+	@echo "These results come from software version" >> version_info
+	@git rev-parse HEAD >> version_info
+	@echo "The current status of the branch was" >> version_info
+	@git status >> version_info
 
 nse_fixed_point.x: $(NSEOBJS) $(ODIR)/$(user_fcn).o $(FPOBJS)
 	$(FC) $(FFLAGS) -o nse_fixed_point.x $^ -L$(lapack_lib_dir) -L$(blas_lib_dir) $(fixed_point_libs)
 
 nse_optiman.x: $(NSEOBJS) $(ODIR)/$(user_fcn).o $(OPTOBJS)
 	$(FC) $(FFLAGS) -o nse_optiman.x $^ -L$(blas_lib_dir) $(optiman_libs)
+	@rm -f version_info
+	@touch version_info
+	@echo "These results come from software version" >> version_info
+	@git rev-parse HEAD >> version_info
+	@echo "The current status of the branch was" >> version_info
+	@git status >> version_info
 	
 timestamp:=$(shell /bin/date +"%y%m%d%H%M%S")
 store_results:
@@ -112,10 +124,6 @@ ifneq ("$(wildcard old_par)","")
 	@mv kx_projections results/$(folder)_$(timestamp)/
 	@mv ky_projections results/$(folder)_$(timestamp)/
 endif
-	@rm -f version_info
-	@touch version_info
-	@echo "These results come from software version" >> version_info
-	@git rev-parse HEAD >> version_info
 	@mv version_info results/$(folder)_$(timestamp)/
 	@echo "Results stored in results/$(folder)_$(timestamp)"
 else
