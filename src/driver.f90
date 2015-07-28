@@ -61,12 +61,14 @@ close(100)
 open(100,file="eigval1")
 read(100,*) real_part
 read(100,*) imag_part
-eigval1 = complex(real_part,imag_part)
+!eigval1 = complex(real_part,imag_part)
+eigval1 = dcmplx(real_part,imag_part)
 close(100)
 open(100,file="eigval2")
 read(100,*) real_part
 read(100,*) imag_part
-eigval2 = complex(real_part,imag_part)
+!eigval2 = complex(real_part,imag_part)
+eigval2 = dcmplx(real_part,imag_part)
 close(100)
 allocate(fixed_point(ndim))
 open(100,file="fixed_point")

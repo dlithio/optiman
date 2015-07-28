@@ -1039,7 +1039,7 @@ subroutine progressring(point,total_points,it,total_it,current_val)
   write(unit=bar(17:20),fmt="(i4)") total_points
   write(unit=bar(46:48),fmt="(i3)") it
     write(unit=bar(57:59),fmt="(i3)") total_it
-  write(unit=bar(77:95),fmt="(d19.13)") current_val
+  write(unit=bar(77:95),fmt="(d19.12)") current_val
 write(unit=6,fmt="(a1,a95,$)") char(13), bar
   return
 end subroutine progressring
