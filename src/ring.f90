@@ -916,10 +916,12 @@ do i=1,npoints
     !if (sum(t(:,i)*normct(:,i))**0.5 .le. 0.999d0) then
     !    fideal(:,i) = f(:,i)
     !endif
-    !if ((dabs(f_dot_t(i)) .gt. 0.99d0)) then
-    !    fideal(:,i) = 0.d0
-    !endif
+    if ((dabs(f_dot_t(i)) .gt. 0.99d0)) then
+        fideal(:,i) = 0.d0
+    endif
+    !TODO WORK HERE!!!!
 enddo
+call normc(fideal,npoints)
 end subroutine find_fideal
 
 subroutine timestep(ndim,npoints,dt)
