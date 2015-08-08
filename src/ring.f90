@@ -910,17 +910,13 @@ call dot(t,f,f_dot_t,npoints)
 !normct(:,1:(npoints-1)) = t(:,2:npoints)
 !normct(:,npoints) = t(:,1)
 do i=1,npoints
-    !if ((sum(t(:,i)*normct(:,i))**0.5 .gt. 0.999d0) .and. (dabs(f_dot_t(i)) .le. 0.99d0)) then
-        fideal(:,i) = f(:,i) + (phi(i) - f_dot_t(i)) * t(:,i)
-    !endif
-    !if (sum(t(:,i)*normct(:,i))**0.5 .le. 0.999d0) then
-    !    fideal(:,i) = f(:,i)
-    !endif
-    if ((dabs(f_dot_t(i)) .gt. 0.99d0)) then
-        fideal(:,i) = 0.d0
-    endif
-    !TODO WORK HERE!!!!
+    fideal(:,i) = f(:,i) + (phi(i) - f_dot_t(i)) * t(:,i)
 enddo
+if (MAXVAL(dabs(f_dot_t)) .gt. 0.99d0) then
+    write(*,*) "the flow is tangential. Switching off of fideal."
+    f_switch = 3
+    call find_forig(ndim,npoints)
+endif
 call normc(fideal,npoints)
 end subroutine find_fideal
 
